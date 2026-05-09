@@ -117,7 +117,7 @@ Month 36+     Pure fee-driven rewards (pool depleted ~month 60)
 
 - **Type:** BaseAccount (no vesting)
 - **Cliff:** None
-- **Claimable:** At genesis (claim window TBD, unclaimed returns to Foundation)
+- **Claimable:** At genesis with a **6-month claim window**; unclaimed VTX returns to Foundation Treasury after window closes
 - **Rationale:** Bootstraps Cosmos ecosystem community engagement at launch
 
 ---

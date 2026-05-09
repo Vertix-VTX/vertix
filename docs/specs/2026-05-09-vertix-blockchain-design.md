@@ -45,7 +45,7 @@ Validator-integrated price feed engine. All active validators run an off-chain o
 | `MissThreshold` | 5% of windows | Yes |
 | `MissSlashRate` | 0.5% of bonded stake | Yes |
 | `OutlierSlashRate` | 1.0% of bonded stake | Yes |
-| `MinDenomPairs` | governance-set | Yes |
+| `MinDenomPairs` | 5 pairs (VTX/USD, BTC/USD, ETH/USD, ATOM/USD, USDC/USD) | Yes |
 
 **Keeper interface (consumed by `x/rwa`):**
 ```go
@@ -205,12 +205,13 @@ VTX is a **work token + yield token + deflationary asset**:
 ```
 Phase         Validator Rewards Source
 ──────────────────────────────────────────────────────
-Months 0–18   Validator Incentives Pool (2.52M VTX) + growing fees
-Months 18–36  Declining pool emissions + majority from fees
-Month 36+     Pure fee-driven rewards (pool depleted)
+Months 0–18   Pool emissions (dominant) + growing fee revenue
+Months 18–36  Declining pool emissions + majority from fee revenue
+Months 36–60  Minority pool trickle + dominant fee revenue
+Month 60+     Pure fee-driven rewards (pool fully vested and distributed)
 ```
 
-This mirrors Bitcoin's long-run model but with RWA + oracle fees replacing miner fees.
+The Validator Incentives Pool vests linearly over 60 months. This mirrors Bitcoin's long-run model: declining block emissions phase out as fee revenue from oracle data and RWA activity grows to sustain network security.
 
 ---
 
