@@ -1,454 +1,403 @@
-# Cosmos SDK + Ignite CLI: Full Blockchain Roadmap
+# Vertix Blockchain — Full Roadmap
 
-This plan breaks down the end-to-end tasks to build a production-ready Cosmos SDK blockchain using Ignite CLI, CometBFT, IBC, and CosmJS. Each phase includes actionable tasks, commands, and acceptance criteria.
-
-## Phase 0 — Prerequisites
-- [ ] Install Go (matching Cosmos SDK requirements)
-- [ ] Install Ignite CLI
-  ```bash
-  curl https://get.ignite.com/cli! | bash
-  ignite version
-  ```
-- [ ] Install buf, protoc, and protoc-gen tools (for protobuf)
-- [ ] Install Node.js and pnpm/yarn (for CosmJS tooling)
-- [ ] Docker (optional, for local relayers and deployment)
-
-Acceptance criteria:
-- **Go**, **Ignite**, **buf**, **protoc**, **Node** available in PATH.
+**Chain:** Vertix (`vertix-1`) | **Ticker:** VTX | **Target Mainnet:** Month 12
+**Tech Stack:** Cosmos SDK v0.50.x · CometBFT v0.38.x · ibc-go v8.x · Go 1.22+
 
 ---
 
-## Phase 1 — Initialize Chain (Ignite)
-- [ ] Scaffold a new chain
-  ```bash
-  ignite scaffold chain pns --no-module
-  ```
-- [ ] Set app name, binary, bech32 prefix, and denom in `config.yml`
-- [ ] Configure initial accounts, faucet, and balances in `config.yml`
-- [ ] Run the chain with live reload
-  ```bash
-  ignite chain serve --reset-once
-  ```
+## Timeline Overview
 
-Acceptance criteria:
-- Chain boots, produces blocks, default REST/gRPC endpoints are available.
-
----
-
-## Phase 2 — Core App Wiring
-- [ ] Ensure module manager, begin/end blockers, and invariants are wired in `app/app.go`
-- [ ] Configure module execution order (BeginBlocker, EndBlocker, InitGenesis)
-- [ ] Enable `upgrade`, `params`, `auth`, `bank`, `staking`, `gov`, `distribution`, `slashing`, `feegrant`, `authz`, `consensus`, `crisis`, `capability`, `ibc`, `transfer` modules
-- [ ] Configure `encoding` and `txConfig`
-
-Acceptance criteria:
-- App compiles; module order validates at start.
-
----
-
-## Phase 3 — Base Modules Configuration
-- [ ] Auth: set `MaxTxGasWanted`, signature modes
-- [ ] Bank: set base denom, send enabled, metadata
-- [ ] Staking: set bond denom, unbonding time, validators params
-- [ ] Gov (new or legacy, depending on SDK version): set voting & deposit params
-- [ ] Distribution: set community tax, withdraw address enabled
-- [ ] Slashing: set signed blocks window, min signed, downtime/jail params
-- [ ] Upgrade: enable handlers and version map
-- [ ] Crisis: set constant fee (denom/amount)
-- [ ] Feegrant/Authz: ensure keepers are wired
-- [ ] Consensus: configure block params
-- [ ] IBC core & transfer: enable ports, `transfer` module, capability keeper
-
-Acceptance criteria:
-- Genesis reflects configured params; node starts with no invariant violations.
-
----
-
-## Phase 4 — Custom Module(s) Scaffolding
-- [ ] Scaffold a custom module with dependencies
-  ```bash
-  ignite scaffold module pns --dep bank,auth,params
-  ```
-- [ ] Add state types using list/map/single
-  ```bash
-  ignite scaffold list pns domain name:string owner:string expires:int64
-  ignite scaffold map  pns resolver name:string address:string
-  ignite scaffold single pns params
-  ```
-- [ ] Add messages and queries
-  ```bash
-  ignite scaffold message pns register name:string duration:int64 --desc "register domain"
-  ignite scaffold message pns set-resolver name:string address:string
-  ignite scaffold query   pns domain name:string
-  ignite scaffold query   pns resolver name:string
-  ```
-- [ ] Implement keeper logic, validation (`ValidateBasic()`), authorization (signer checks)
-- [ ] Emit events for state changes
-- [ ] Add module parameters with validation (in `types/params.go`)
-- [ ] Add genesis default and validations (in `genesis.go`)
-
-Acceptance criteria:
-- Unit tests pass for keeper, msg server, and query server; txs and queries work via CLI.
-
----
-
-## Phase 5 — Protobuf & API
-- [ ] Define proto messages/services in `proto/pns/...` with proper packages and versions
-- [ ] Add `google.api.http` annotations for gRPC-Gateway REST exposure
-- [ ] Follow ADR-044 protobuf update guidelines (no breaking changes)
-- [ ] Generate code
-  ```bash
-  ignite generate proto-go
-  ignite generate ts-client
-  ```
-- [ ] Validate OpenAPI (if generated) and gRPC reflection
-
-Acceptance criteria:
-- Generated Go and TS clients compile; REST and gRPC endpoints reflect services.
-
----
-
-## Phase 6 — CLI and Transactions
-- [ ] Ensure auto-generated CLI commands exist for all `rpc` Msg/Query (ADR-058 alignment)
-- [ ] Add ergonomic flags for complex types (coins, timestamps, pagination)
-- [ ] Provide examples in README for common tx flows
-  ```bash
-  # examples
-  pnsd tx pns register example --duration 31536000 --from alice --fees 2000stake
-  pnsd q  pns domain example -o json
-  ```
-
-Acceptance criteria:
-- All tx/query flows executable through CLI with clear help and examples.
-
----
-
-## Phase 7 — CosmJS Integration
-- [ ] Publish or link generated TS clients from `ts-client`
-- [ ] Implement a simple client script for connect, sign, broadcast, and query
-  ```ts
-  import { SigningStargateClient, DirectSecp256k1HdWallet } from "@cosmjs/stargate";
-  // connect, sign, broadcast, query examples against local node
-  ```
-- [ ] Add high-level helper for your custom module (e.g., `registerDomain(wallet, name, duration)`)
-- [ ] Provide E2E script that: creates accounts, funds, sends a tx, queries state, verifies results
-
-Acceptance criteria:
-- Node interaction works end-to-end via CosmJS; README documents usage.
-
----
-
-## Phase 8 — IBC Enablement
-- [ ] Enable `ibc` and `transfer` modules in `app/app.go`
-- [ ] Configure ICS-20 transfer params, port `transfer`
-- [ ] Scaffold IBC packet(s) for custom module if needed
-  ```bash
-  ignite scaffold packet pns ibctransfer name:string amount:coin --ack success:string
-  ```
-- [ ] Implement `OnRecvPacket`, `OnAcknowledgementPacket`, `OnTimeoutPacket` logic
-- [ ] Spin up a second local chain (another Ignite chain) and create channels
-- [ ] Run a relayer (Ignite relayer or Hermes) to relay packets
-- [ ] Provide relayer setup recipes for both Hermes and Go Relayer (rly)
-- [ ] Local multi-chain dev with `local-interchain` for quick demos
-
-Acceptance criteria:
-- ICS-20 transfers succeed between chains; custom IBC packets ack and mutate state as expected.
-
----
-
-## Phase 9 — Testing Strategy
-- [ ] Unit tests: keeper, msg server, query server (table-driven tests)
-- [ ] Integration tests: app/module init, tx flow, events
-  ```bash
-  ignite test --verbose
-  ```
-- [ ] IBC integration tests with two local chains and relayer
-- [ ] Simulation tests (if applicable): state machine invariants, random operations
-- [ ] Test coverage threshold (e.g., >70%) and CI setup
-- [ ] Load testing with `tm-load-test`; capture baseline TPS/latency
-- [ ] End-to-end ABCI swap-out tests using `CometMock`
-- [ ] Static analysis with `cosmos-sdk-codeql` in CI
-
-Acceptance criteria:
-- CI green on unit/integration; IBC e2e passing; coverage threshold met.
-
----
-
-## Phase 10 — Genesis & Params
-- [ ] Configure `config.yml` accounts, faucet, denominations, and module params
-- [ ] Add genesis validation for custom module
-- [ ] Provide sample `genesis.json` and quickstart script
-- [ ] Document fee settings, min gas prices, and denominations
-- [ ] Include `cosmos-genesis-tinkerer` workflows for reproducible genesis edits (audited diffs)
-
-Acceptance criteria:
-- Deterministic genesis; `pnsd start` works with configured params.
-
----
-
-## Phase 11 — Observability & Ops
-- [ ] Enable structured logging and log levels
-- [ ] Enable Prometheus metrics and scrape configs
-- [ ] Expose app/consensus metrics (CometBFT)
-- [ ] Configure pprof (optional)
-- [ ] Integrate Tenderduty for missed-blocks alerting (validators)
-- [ ] Integrate PANIC monitoring and alerting
-- [ ] Add auxiliary Prometheus exporters: node-exporter, wallets-exporter, validators-exporter
-- [ ] Provide a default Grafana dashboard (CometBFT + SDK + OS metrics)
-
-Acceptance criteria:
-- Metrics visible; dashboards show node health and performance; alerts fire on missed blocks and low balances
-
----
-
-## Phase 12 — Upgrades & Migrations
-- [ ] Wire the `upgrade` module with handlers per version name
-- [ ] Implement `Migrations()` for store/key changes
-- [ ] Write upgrade handler tests
-- [ ] Document on-chain governance-based upgrade procedure
-
-Acceptance criteria:
-- Simulated upgrade executes; state migrated correctly; node continues producing blocks.
-
----
-
-## Phase 13 — Security & Invariants
-- [ ] Validate all inputs; strict `ValidateBasic()`
-- [ ] Signer/authorization checks in all messages
-- [ ] Emit events for state changes
-- [ ] Add invariants (where applicable) and integrate with crisis module
-- [ ] Gas metering for loops/iterations; avoid unbounded operations
-- [ ] Proper key prefixes and capability scoping for IBC
-
-Acceptance criteria:
-- No invariant violations; fuzz and adversarial tests pass.
-
----
-
-## Phase 14 — Developer Experience
-- [ ] Makefile targets for build, test, lint, proto-gen, ts-gen
-- [ ] `ignite chain serve --reset-once` for fast iteration
-- [ ] Pre-commit hooks for formatting (gofmt, golangci-lint) and proto-breaking checks (buf)
-- [ ] Local dev scripts: seed accounts, send sample txs, query helpers
-
-Acceptance criteria:
-- One-command dev loop; contributors can run, test, and develop easily.
-
----
-
-## Phase 15 — Packaging & Deployment
-- [ ] Dockerfile for node binary
-- [ ] Configuration for seeds/peers, pruning, snapshots
-- [ ] Persistent peers and address book setup
-- [ ] Release pipeline to publish binaries and Docker images
-
-Acceptance criteria:
-- Reproducible builds; node deployable on remote servers with documented steps.
-
----
-
-## Phase 16 — Documentation
-- [ ] Update README: overview, prerequisites, quickstart, commands
-- [ ] Module docs: state, messages, queries, events, params
-- [ ] API docs: gRPC/REST endpoints and CosmJS examples
-- [ ] IBC guide: channels, relayer setup, demo flows
-- [ ] Operations guide: upgrades, backups, monitoring
-
-Acceptance criteria:
-- Developers and validators can follow docs to run, build, and integrate with the chain.
-
----
-
-## Phase 17 — Tokenomics & Unlock Schedule
-- [ ] Define total supply (base units) and base/display denoms (`upns`/`pns`)
-- [ ] Allocate supply across categories (team, investors, foundation, community, ecosystem, liquidity, airdrop)
-- [ ] Choose vesting types per category/beneficiary:
-  - ContinuousVesting (linear between start/end)
-  - DelayedVesting (cliff, all at end)
-  - PeriodicVesting (custom periods and amounts)
-- [ ] Produce beneficiary list with addresses and amounts
-- [ ] Specify unlock schedule (cliff, cadence, periods) per category
-- [ ] Implement tokenomics in genesis via one of:
-  - `config.yml` genesis overrides with vesting accounts and bank balances
-  - or CLI: `pnsd genesis add-genesis-account` with `--vesting-amount`, `--vesting-start-time`, `--vesting-end-time`
-  - or manual patch of `genesis.json` adding `cosmos.vesting.v1beta1.*VestingAccount`
-- [ ] Document tokenomics and schedules in `docs/tokenomics.md`
-
-Acceptance criteria:
-- Token allocation table equals total supply
-- Vesting accounts present in genesis; bank balances match allocations
-- Schedules verified via queries (staking params unaffected; balances and vesting fields correct)
-
-References:
-- Cosmos SDK Vesting Accounts: `https://docs.cosmos.network/v0.53/user/run-node/run-node` (genesis accounts) and module docs
-- Ignite Config Genesis Overrides: `https://docs.ignite.com/guide/config`
-
-## Quick Command Reference (Ignite)
-```bash
-ignite scaffold chain pns --no-module
-ignite scaffold module pns --dep bank,auth,params
-ignite scaffold list pns domain name:string owner:string expires:int64
-ignite scaffold map  pns resolver name:string address:string
-ignite scaffold single pns params
-ignite scaffold message pns register name:string duration:int64
-ignite scaffold query   pns domain name:string
-ignite scaffold packet  pns ibctransfer name:string amount:coin --ack success:string
-ignite generate proto-go
-ignite generate ts-client
-ignite test --verbose
-ignite build
-ignite chain serve --reset-once
+```
+Month:  1    2    3    4    5    6    7    8    9   10   11   12
+        ├────┼────┼────┼────┼────┼────┼────┼────┼────┼────┼────┤
+Chain   [Phase 0─────────]
+Oracle       [──Phase 1 (x/oracle)──────────]
+RWA               [──Phase 2 (x/rwa)──────────]
+Fees                        [Phase 3 (x/fees)]
+IBC                              [─Phase 4─]
+Devnet              [───Phase 5 (devnet)────]
+Security                              [Phase 6]
+Testnet v1               [────Phase 7────────]
+Audit                                 [─Phase 8─]
+Testnet v2                                   [Phase 9─]
+Mainnet                                               [🚀]
 ```
 
-Notes:
-- Refer to Ignite CLI references for more scaffolding options (list, map, single, type, packet, message, query, react, vue).
-- Follow Cosmos SDK ADR-044 for protobuf updates and ADR-058 for auto-generated CLI expectations.
+---
+
+## Phase 0 — Foundation `Month 0–1`
+
+**Goal:** Working skeleton chain, CI/CD, and tooling locked.
+
+### Tasks
+- [ ] Scaffold chain: `ignite scaffold chain vertix --no-module`
+- [ ] Configure chain identity in `config.yml`:
+  - App name: `vertixd`
+  - Bech32 prefix: `vtx`
+  - Base denom: `uvtx`
+  - Chain ID: `vertix-devnet-1`
+- [ ] Wire all standard SDK modules in `app/app.go`:
+  - `x/auth`, `x/bank`, `x/staking`, `x/gov`, `x/distribution`, `x/slashing`
+  - `x/upgrade`, `x/params`, `x/crisis`, `x/feegrant`, `x/authz`
+  - `x/capability`, `x/ibc`, `x/transfer`
+- [ ] Configure genesis parameters:
+  - Bond denom: `uvtx`
+  - Unbonding time: 21 days
+  - Min validator commission: 5%
+  - Min gas price: `0.025uvtx`
+- [ ] Repo infrastructure:
+  - Makefile targets: `build`, `test`, `lint`, `proto-gen`, `ts-gen`
+  - `golangci-lint` config
+  - `buf` + `protoc` for protobuf
+  - Pre-commit hooks: `gofmt`, lint, proto-breaking checks
+- [ ] CI/CD: GitHub Actions — build, lint, unit test on every PR
+- [ ] Run chain: `ignite chain serve --reset-once`
+
+**Acceptance Criteria:**
+- Chain boots and produces blocks
+- REST (`:1317`), gRPC (`:9090`), RPC (`:26657`) endpoints available
+- All standard modules pass genesis validation
 
 ---
 
-## Phase 18 — Block Explorer
-- [ ] Expose node endpoints for explorers (public or localhost):
-  - RPC (26657), REST (1317), gRPC (9090), gRPC-Web (9091, optional)
-  - Enable CORS for REST if required by explorer
-- [ ] Choose explorer stack:
-  - Ping.pub (UI-only, simple config; uses LCD/RPC)
-  - Big Dipper + BDJuno + Hasura (full indexer + UI)
-  - Terminal explorers (gex, cshtop, pvtop) for dev/ops
-- [ ] Configure chain metadata (bech32 prefix, denom, decimals, logo) for the explorer
-- [ ] Stand up the explorer locally via Docker or source build
-- [ ] Verify blocks, transactions, accounts, validators, and (optional) IBC pages
+## Phase 1 — `x/oracle` Module `Month 1–4`
 
-Implementation options:
-- Ping.pub: Prepare a chain config JSON and run the Docker image with mounted config
-- Big Dipper: Deploy BDJuno indexer (PostgreSQL), Hasura GraphQL, and Big Dipper UI; set env to point at chain RPC/LCD
-- Optional lightweight indexers: Cosmscan or interchain-indexer (Python)
+**Goal:** Validator-integrated price feed live on devnet with slashing.
 
-Acceptance criteria:
-- Explorer shows live blocks and transactions for the local node
-- Account and transaction detail pages render correctly
-- Validator list (if staking enabled) displays with correct voting power
-- Optional: ICS-20 transfers visible if `transfer` module enabled
-- Optional: At least one indexer pipeline (BDJuno or lightweight) runs locally and serves the explorer
+### Architecture
+- All active validators run an **oracle feeder sidecar** (`vertix-feeder` binary)
+- Sidecar fetches prices from external APIs, signs `MsgSubmitFeed`, broadcasts each block
+- On-chain aggregation: stake-weighted median per denom pair per vote window (10 blocks default)
+- TWAP windows: 1h and 24h stored per pair
 
-References:
-- See `docs/explorer.md` for detailed steps
-- Awesome list explorers and indexers in `docs/cosmos-sdk-awesome.md` (Block Explorers, Indexers)
+### Tasks
+- [ ] Scaffold module: `ignite scaffold module oracle --dep staking,slashing,params`
+- [ ] Define protobuf types:
+  - `MsgSubmitFeed` — validator price submission
+  - `MsgUpdateParams` — governance param updates
+  - `QueryGetPrice` — spot price query
+  - `QueryGetTWAP` — TWAP query by pair + window
+  - `OracleFeed`, `AggregatedPrice`, `OracleParams`
+- [ ] Generate code: `ignite generate proto-go`
+- [ ] Implement keeper logic:
+  - Vote round collection per block
+  - Stake-weighted median aggregation at end of vote window
+  - TWAP calculation (rolling 1h / 24h per pair)
+  - Miss counter per validator per window
+- [ ] Implement slashing:
+  - Miss rate > 5% of windows → slash 0.5% of bonded stake via `x/slashing`
+  - Outlier submission (statistical) → slash 1.0%
+- [ ] Implement clean keeper interface for `x/rwa` consumption:
+  ```go
+  GetPrice(ctx, pair string) (sdk.Dec, error)
+  GetTWAP(ctx, pair string, window time.Duration) (sdk.Dec, error)
+  ```
+- [ ] Build `vertix-feeder` sidecar binary (Go):
+  - Configurable price source APIs
+  - Signs and broadcasts `MsgSubmitFeed` each block
+  - Metrics: feeds submitted, misses, latency
+- [ ] Emit events: `EventFeedSubmitted`, `EventPriceAggregated`, `EventOracleSlash`
+- [ ] Add module params to genesis with validation
+- [ ] Unit tests: aggregation logic, TWAP, miss counting, slash conditions
+- [ ] Integration tests: full vote round simulation on local node
 
----
-
-## Phase 19 — Wallet Integrations
-- [ ] Wallet support: Keplr, Leap, Cosmostation
-- [ ] Chain info for wallets (suggestChain JSON or chain-registry entries)
-- [ ] Verify offline signer via CosmJS; ADR-027/ADR-036 compatibility if applicable
-- [ ] UI testing with basic web dApp (connect wallet, show balances, send tx)
-- [ ] Ensure denom metadata and decimals display correctly in wallets
-
-Acceptance criteria:
-- Wallets can connect to the node, derive addresses, and sign/broadcast txs
-- Denom `PNS` shown with correct decimals (6); balances reflected accurately
-
-References:
-- CosmJS: `https://github.com/cosmos/cosmjs`
-- Chain Registry format: `https://github.com/cosmos/chain-registry`
-
----
-
-## Phase 20 — Testnets
-- [ ] Spin up devnet: single node with faucet and explorer
-- [ ] Public testnet: 2+ validators, seeds, persistent peers, explorer, faucet
-- [ ] Publish endpoints, faucet instructions, and quickstart docs
-- [ ] Capture known issues and upgrade a testnet as a rehearsal
-- [ ] Deploy a public faucet service (Cosmfaucet) with rate limiting
-- [ ] Choose explorer stack (Ping.pub vs Big Dipper + BDJuno); document trade-offs
-
-Acceptance criteria:
-- Public testnet stable for ≥1 week; users can request funds and transact
-- Explorer shows blocks/txs; faucet operational; documentation clear
+**Acceptance Criteria:**
+- Price feeds aggregate correctly across simulated validators
+- TWAP windows populate and expire correctly
+- Slash events fire at correct miss/outlier thresholds
+- `vertixd q oracle price [pair]` and `q oracle twap [pair] [window]` work via CLI
 
 ---
 
-## Phase 21 — Genesis Ceremony & Validator Coordination
-- [ ] Decide min commission, params, and governance settings
-- [ ] Distribute instructions: `pnsd init`, `gentx`, `collect-gentxs`, peer lists
-- [ ] Aggregate gentxs with consistent chain-id and genesis time
-- [ ] Publish genesis.json and SHA256; finalize minimum gas prices
-- [ ] Dry-run with a coordinated pre-launch validation
-- [ ] Distribute `persistent_peers`/`seeds` lists and addrbook; peer discovery checklist
+## Phase 2 — `x/rwa` Module `Month 2–5`
 
-Acceptance criteria:
-- All validators can verify genesis hash, start at same time, and produce blocks
-- Peer connectivity functional; no double-sign risk from instructions
-- Peer mesh forms quickly at launch; no network partitions
+**Goal:** Protocol-agnostic asset registry and lifecycle on devnet.
 
----
+### Asset Lifecycle
+```
+DRAFT → ATTESTED → ACTIVE → SETTLED
+           ↑                    ↓
+    (oracle price linked,  (RWA tokens burned,
+     issuer bond locked)    bond returned or slashed)
+```
 
-## Phase 22 — Chain Registry & Metadata
-- [ ] Prepare chain.json and assetlist for `cosmos/chain-registry`
-- [ ] Include RPC/LCD endpoints, explorers, peers/seeds, logo, fees
-- [ ] Submit PR and update as endpoints change
-- [ ] Prepare wallet suggestChain configs (Keplr, Leap, Cosmostation) where applicable
+### Tasks
+- [ ] Scaffold module: `ignite scaffold module rwa --dep bank,oracle,params`
+- [ ] Define protobuf types:
+  - `MsgRegisterAsset` — issuer creates asset record
+  - `MsgAttestAsset` — link oracle price, transition to ATTESTED
+  - `MsgMintRWA` — mint RWA tokens once ATTESTED
+  - `MsgTransferRWA` — transfer with module-enforced restrictions
+  - `MsgSettleRWA` — burn tokens, release bond, transition to SETTLED
+  - `AssetRecord`, `AssetStatus` enum, `RWAParams`
+- [ ] Implement state machine transitions with validation at each step
+- [ ] Implement issuer bonding:
+  - `MsgRegisterAsset` locks `MinIssuerBond` (default 10,000 VTX) in module escrow
+  - Bond returned on `SETTLED`; slashed on dispute
+- [ ] Implement `rwa/{asset-id}` denom minting via `x/bank` factory denoms
+- [ ] Implement transfer restriction hooks (allowlist/denylist per asset, set by issuer)
+- [ ] Integrate `OracleKeeper.GetPrice()` for attestation validation
+- [ ] Fee collection on mint + settle (0.1% of notional each), forwarded to `x/fees`
+- [ ] Emit events: `EventAssetRegistered`, `EventAssetAttested`, `EventRWAMinted`, `EventRWASettled`
+- [ ] Genesis params + validation
+- [ ] Unit tests: state machine transitions, bond escrow, fee calculation, restriction enforcement
+- [ ] Integration test: full lifecycle — register → attest → mint → transfer → settle
 
-Acceptance criteria:
-- PR merged; wallets/explorers ingest registry data successfully
-- Wallets connect via registry data; denom metadata/decimals display correctly
-
----
-
-## Phase 23 — Launch Infra & SRE
-- [ ] Sentry architecture: validators behind sentry nodes; seeds and peers
-- [ ] State sync and snapshots; publish snapshot service cadence
-- [ ] Cosmovisor setup and binary distribution strategy
-- [ ] P2P hardening: addrbook, peer-exchange, seeds, persistent peers
-- [ ] Backup and restore playbooks
-- [ ] Document Cosmovisor service layout and upgrade procedure
-- [ ] Publish snapshot cadence and validate restoration regularly
-
-Acceptance criteria:
-- Validators join via documented peer discovery; snapshots reduce sync time
-- Cosmovisor seamlessly manages upgrades in staging
-
----
-
-## Phase 24 — Mainnet Launch Checklist
-- [ ] Finalize chain-id and version tag; release binaries and Docker images
-- [ ] Distribute final genesis, SHA256, peers, and start time
-- [ ] Perform prelaunch verification: `validate-genesis`, dry sync, load test
-- [ ] Prepare incident response and emergency comms channels
-
-Acceptance criteria:
-- All validators confirm readiness; network starts producing blocks as scheduled
-- No critical incidents in first 24–48 hours
+**Acceptance Criteria:**
+- Full asset lifecycle executable via CLI
+- Oracle price required and validated at attestation
+- Issuer bond locked and released correctly
+- Transfer restrictions enforced by module
+- Fees collected and forwarded to `x/fees`
 
 ---
 
-## Phase 25 — Post-Launch Operations
-- [ ] Monitoring: Prometheus, Grafana dashboards, alerting thresholds
-- [ ] On-call rotation and incident runbooks
-- [ ] Patch/hotfix process; security advisories
-- [ ] Snapshot cadence; pruning strategy; backups
+## Phase 3 — `x/fees` Module `Month 4–5`
 
-Acceptance criteria:
-- Alerts actionable; MTTR within targets; regular snapshots validated
+**Goal:** Automated fee burn and staker distribution live.
+
+### Tasks
+- [ ] Scaffold module: `ignite scaffold module fees --dep bank,distribution,params`
+- [ ] Implement `EndBlock` fee collection hook:
+  - Sweep all module fee accounts each block
+  - Apply `BurnRatio` (40%): call `x/bank.BurnCoins()`
+  - Apply `DistributionRatio` (60%): send to `x/distribution.FeePool`
+- [ ] Implement governance-adjustable params: `BurnRatio`, `DistributionRatio`
+- [ ] Emit events: `EventFeeBurned` (amount), `EventFeeDistributed` (amount)
+- [ ] Integration test: full fee flow from RWA mint → burn confirmed + distribution confirmed
+
+**Acceptance Criteria:**
+- Fee burn visible in bank total supply reduction
+- Staker rewards reflect distributed fees via `x/distribution` queries
+- Events indexed correctly (verifiable via block explorer)
+- Governance can update burn/distribution ratios via proposal
 
 ---
 
-## Phase 26 — Ecosystem Integrations
-- [ ] IBC channels to major hubs (e.g., Cosmos Hub, Osmosis)
-- [ ] Production relayers (Hermes/Go relayer) with monitoring
-- [ ] DEX listings coordination; price feeds/oracles as needed
-- [ ] Indexers: BDJuno, Hasura, TheGraph-like adapters if needed
+## Phase 4 — IBC Enablement `Month 5–6`
 
-Acceptance criteria:
-- Stable IBC packet flow and ICS-20 transfers; relayer uptime acceptable
-- Token listed on target platforms (where applicable)
+**Goal:** VTX and RWA denoms transferable cross-chain.
+
+### Tasks
+- [ ] Confirm `x/ibc` + `x/transfer` (ICS-20) wired in `app.go`
+- [ ] Configure `transfer` module params in genesis
+- [ ] Local multi-chain test with `interchaintest`:
+  - Two Vertix nodes + Hermes relayer
+  - ICS-20 transfer of VTX between chains
+  - ICS-20 transfer of `rwa/{id}` denom between chains
+- [ ] Provide relayer setup recipes in `docs/relayer.md`:
+  - Hermes (`v1.8.x`) config for Vertix channels
+  - Go Relayer (`rly`) alternative config
+- [ ] Target IBC channel connections for mainnet (docs):
+  - Cosmos Hub, Osmosis, Noble (USDC), Neutron
+
+**Acceptance Criteria:**
+- ICS-20 VTX transfers succeed in `interchaintest` suite
+- RWA denom transfers work cross-chain
+- Relayer setup documented and reproducible
 
 ---
 
-## Phase 27 — Compliance & Legal (Optional)
-- [ ] Publish disclaimers and terms for token distribution
-- [ ] Airdrop criteria and regional restrictions (if any)
-- [ ] Document tax considerations and reporting guidance (jurisdiction-dependent)
-- [ ] Privacy policy and data handling for services (explorer, faucet)
+## Phase 5 — Devnet `Month 3–6` *(runs parallel to module development)*
 
-Acceptance criteria:
-- Public docs cover distribution terms and regulatory notices as required
+**Goal:** Stable internal multi-validator network with all modules live.
+
+### Tasks
+- [ ] Single-node devnet → multi-validator devnet (3 internal validators)
+- [ ] Oracle feeders deployed per internal validator
+- [ ] Block explorer: Ping.pub configured for `vertix-devnet-1`
+- [ ] Faucet: Cosmfaucet with rate limiting
+- [ ] Automated devnet reset + seed scripts (`make devnet-reset`)
+- [ ] Internal QA: full RWA issuance + oracle feed + fee burn + IBC cycle demonstrated end-to-end
+
+**Acceptance Criteria:**
+- 3-validator devnet stable for 1+ week
+- Oracle feeds aggregating correctly across all validators
+- Full RWA lifecycle and fee burn visible in explorer
+- Faucet operational
+
+---
+
+## Phase 6 — Security Hardening `Month 6–7`
+
+**Goal:** Audit-ready codebase.
+
+### Tasks
+- [ ] Register all keeper invariants with `x/crisis`:
+  - Oracle: aggregate prices exist for all configured pairs
+  - RWA: all ACTIVE assets have bonded issuer stake
+  - Fees: module account balances reconcile with burn + distribution totals
+- [ ] Simulation tests: random operations, state machine fuzzing for all three custom modules
+- [ ] Static analysis: `cosmos-sdk-codeql` in CI
+- [ ] Gas metering audit:
+  - No unbounded loops in oracle aggregation
+  - No unbounded enumeration in RWA registry queries
+- [ ] Adversarial testing: oracle feed manipulation scenarios, RWA bond bypass attempts
+- [ ] Load testing with `tm-load-test`: establish baseline TPS and latency on devnet
+- [ ] `tmkms` setup guide for validators: `docs/tmkms.md`
+- [ ] Sentry node architecture documented: `docs/validator-setup.md`
+
+**Acceptance Criteria:**
+- No invariant violations under simulation
+- All `cosmos-sdk-codeql` findings resolved or documented
+- TPS baseline established and documented
+- Validator security guide complete
+
+---
+
+## Phase 7 — Public Testnet v1 `Month 7–9`
+
+**Goal:** Battle-test with external validators and real users.
+
+### Tasks
+- [ ] Chain ID: `vertix-testnet-1`
+- [ ] Onboard 10+ external validators (docs: `docs/validator-onboarding.md`)
+- [ ] Public faucet live (Cosmfaucet with VTX testnet tokens)
+- [ ] Bug bounty program launched (scope: all three custom modules)
+- [ ] External validators run oracle feeder sidecars independently
+- [ ] RWA demo campaign:
+  - Example asset classes registered, attested, minted, and settled publicly
+  - Tutorial: `docs/rwa-quickstart.md`
+- [ ] Monitoring stack deployed:
+  - Prometheus + Grafana dashboards (block time, oracle miss rate, fee burn rate, RWA activity)
+  - Tenderduty: missed block alerts for validator operators
+  - PANIC: general validator health monitoring
+- [ ] Collect and triage all public issues → prioritize for testnet v2
+
+**Acceptance Criteria:**
+- Testnet stable for 4+ weeks with 10+ external validators
+- Oracle feeds operating across independent validator sidecars
+- At least one full RWA lifecycle (register → settle) demonstrated publicly
+- No critical bugs unaddressed from public reports
+
+---
+
+## Phase 8 — External Security Audit `Month 8–10`
+
+**Goal:** Third-party code review of all custom modules before mainnet.
+
+### Tasks
+- [ ] Engage auditor with Cosmos SDK experience (Oak Security, Halborn, or Trail of Bits)
+- [ ] Audit scope: `x/oracle`, `x/rwa`, `x/fees`, custom ante handlers, genesis config
+- [ ] Fix all **Critical** and **High** severity findings
+- [ ] Mitigate or formally accept all **Medium** findings
+- [ ] Publish audit report publicly on completion
+- [ ] Re-audit any critical components with changes post-fix
+
+**Acceptance Criteria:**
+- Zero unresolved Critical or High findings
+- Published audit report
+- All fixes verified by auditor
+
+---
+
+## Phase 9 — Public Testnet v2 + Genesis Rehearsal `Month 10–11`
+
+**Goal:** Mainnet-equivalent dry run.
+
+### Tasks
+- [ ] Integrate all audit fixes
+- [ ] Chain ID: `vertix-testnet-2`
+- [ ] Cosmovisor end-to-end test: upgrade handler, binary swap, no downtime
+- [ ] Genesis ceremony rehearsal:
+  - Collect `gentx` from all participating mainnet validators
+  - `collect-gentxs`, verify SHA256 of genesis.json
+  - Coordinated start at predetermined block time
+- [ ] Load test: confirm TPS target under realistic oracle + RWA workload on testnet v2 params
+- [ ] Chain Registry preparation:
+  - `chain.json` + `assetlist.json` drafted for `cosmos/chain-registry`
+  - RPC/LCD/gRPC endpoints confirmed
+- [ ] Wallet configs verified: Keplr and Leap `suggestChain` JSON tested
+- [ ] Final documentation review: README, module docs, validator guide, RWA quickstart
+
+**Acceptance Criteria:**
+- Testnet v2 stable 2+ weeks post-audit fixes
+- Genesis ceremony rehearsal completed without issues
+- Chain Registry PR drafted and under review
+- Cosmovisor upgrade tested successfully
+
+---
+
+## Phase 10 — Mainnet Launch `Month 12`
+
+**Goal:** `vertix-1` live, blocks producing, ecosystem connected.
+
+### Tasks
+- [ ] Finalize chain ID: `vertix-1`, version tag, binary release
+- [ ] Distribute final `genesis.json` + SHA256 to all validators
+- [ ] Publish seed nodes, persistent peers, and addrbook
+- [ ] Coordinated genesis ceremony with 20+ validators
+- [ ] Confirm all validators verify genesis hash and start at same time
+- [ ] Open IBC channels: Cosmos Hub, Osmosis, Noble
+- [ ] Chain Registry PR merged
+- [ ] Keplr + Leap live with `vertix-1` chain info
+- [ ] Ping.pub block explorer: mainnet config live
+- [ ] Public RPC/LCD/gRPC endpoints published in chain registry
+- [ ] Monitoring: full Prometheus + Grafana + Tenderduty stack on mainnet
+- [ ] Announcement: blog post, docs site, community channels
+- [ ] Incident response channels established (Discord, on-call rotation)
+
+**Acceptance Criteria:**
+- `vertix-1` producing blocks with 20+ validators
+- All airdrop and vesting accounts present in genesis
+- IBC channels open and active
+- Explorer showing live blocks and transactions
+- No critical incidents in first 48 hours
+
+---
+
+## Post-Mainnet Roadmap (Month 13–18)
+
+| Milestone | Target Month | Notes |
+|---|---|---|
+| IBC: Osmosis liquidity pools | 13 | VTX/USDC, VTX/ATOM |
+| IBC: Neutron smart contracts | 13 | RWA composability |
+| First institutional RWA issuance | 14 | Partner announcement |
+| Big Dipper + BDJuno full indexer | 14 | GraphQL API for builders |
+| DEX listings coordination | 15 | CEX/DEX VTX pairs |
+| Oracle v2 upgrade proposal | 16 | Hybrid stake-weighted model |
+| CosmWasm integration (optional) | 18 | Smart contract layer |
+| Additional IBC channels | Ongoing | Per community governance |
+
+---
+
+## Quick Command Reference
+
+```bash
+# Chain scaffolding
+ignite scaffold chain vertix --no-module
+ignite scaffold module oracle --dep staking,slashing,params
+ignite scaffold module rwa --dep bank,oracle,params
+ignite scaffold module fees --dep bank,distribution,params
+
+# Development
+ignite chain serve --reset-once
+ignite generate proto-go
+ignite generate ts-client
+
+# Testing
+ignite test --verbose
+go test ./x/oracle/... ./x/rwa/... ./x/fees/... -v
+
+# Build
+ignite build
+make build
+
+# Local devnet
+make devnet-reset
+
+# Validation
+vertixd validate-genesis
+```
+
+---
+
+## References
+
+- Cosmos SDK docs: https://docs.cosmos.network/
+- CometBFT docs: https://docs.cometbft.com/
+- ibc-go docs: https://ibc.cosmos.network/
+- interchaintest: https://github.com/strangelove-ventures/interchaintest
+- Hermes relayer: https://hermes.informal.systems/
+- cosmos/chain-registry: https://github.com/cosmos/chain-registry
+- Awesome Cosmos: https://github.com/cosmos/awesome-cosmos
