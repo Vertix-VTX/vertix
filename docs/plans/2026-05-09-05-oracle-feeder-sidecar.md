@@ -63,13 +63,6 @@ go get gopkg.in/yaml.v3@latest
 go mod tidy
 ```
 
-- [ ] **Step 4: Commit setup**
-
-```bash
-git add go.mod go.sum
-git commit -m "chore: add feeder dependencies — prometheus, yaml"
-```
-
 ---
 
 ## Task 2: Implement Config
@@ -284,13 +277,6 @@ go test ./feeder/feeder/... -run TestConfigValidate -v
 ```
 
 Expected: Both PASS.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add feeder/ feeder-config.example.yaml
-git commit -m "feat(feeder): config — LoadConfig, validation, example YAML"
-```
 
 ---
 
@@ -526,13 +512,6 @@ go test ./feeder/feeder/provider/... -v
 
 Expected: Both tests PASS.
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add feeder/feeder/provider/
-git commit -m "feat(feeder): price providers — CoinGecko, Binance, Median aggregation"
-```
-
 ---
 
 ## Task 4: Implement Broadcaster
@@ -668,13 +647,6 @@ go build ./feeder/...
 
 Expected: No errors.
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add feeder/feeder/broadcaster.go feeder/feeder/encoding.go
-git commit -m "feat(feeder): broadcaster — sign and broadcast MsgSubmitFeed via keyring"
-```
-
 ---
 
 ## Task 5: Implement Prometheus Metrics
@@ -730,13 +702,6 @@ func startMetricsServer(port int) {
 
 ```bash
 go build ./feeder/...
-```
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add feeder/feeder/metrics.go
-git commit -m "feat(feeder): Prometheus metrics — feed count, errors, last price, fetch duration"
 ```
 
 ---
@@ -920,13 +885,6 @@ go test ./feeder/... -v
 
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add feeder/feeder/feeder.go feeder/feeder/feeder_test.go
-git commit -m "feat(feeder): main loop — fetch, aggregate, broadcast, prometheus metrics"
-```
-
 ---
 
 ## Task 7: Implement CLI Entry Point
@@ -1044,13 +1002,6 @@ go test ./feeder/... -v -count=1
 
 Expected: All tests PASS.
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add feeder/cmd/ Makefile
-git commit -m "feat(feeder): CLI entry point — cobra start command, signal handling"
-```
-
 ---
 
 ## Task 8: Add Feeder Docs
@@ -1118,13 +1069,6 @@ The feeder exposes metrics at `http://localhost:9200/metrics`:
 | `vertix_feeder_feed_errors_total` | Total errors per pair and source |
 | `vertix_feeder_last_price` | Last submitted price per pair |
 | `vertix_feeder_fetch_duration_seconds` | Price fetch latency per provider |
-```
-
-- [ ] **Step 2: Commit**
-
-```bash
-git add docs/feeder.md
-git commit -m "docs: vertix-feeder setup guide — install, config, systemd, metrics"
 ```
 
 ---

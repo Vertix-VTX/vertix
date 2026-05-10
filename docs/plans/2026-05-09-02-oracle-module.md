@@ -72,13 +72,6 @@ go build ./...
 
 Expected: No errors. If scaffold added mint-related references, remove them.
 
-- [ ] **Step 3: Commit scaffold**
-
-```bash
-git add .
-git commit -m "chore: ignite scaffold x/oracle module skeleton"
-```
-
 ---
 
 ## Task 2: Define Protobuf Types
@@ -264,13 +257,6 @@ Expected: Go types generated under `x/oracle/types/` from protobuf definitions.
 
 ```bash
 go build ./...
-```
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add proto/ x/oracle/types/
-git commit -m "feat(oracle): define protobuf types — OracleFeed, AggregatedPrice, TWAPEntry, OracleParams"
 ```
 
 ---
@@ -512,13 +498,6 @@ go test ./x/oracle/types/... -v
 ```
 
 Expected: All tests PASS.
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add x/oracle/types/
-git commit -m "feat(oracle): implement types — keys, errors, events, params, ValidateBasic"
-```
 
 ---
 
@@ -1095,13 +1074,6 @@ go test ./x/oracle/keeper/... -v
 
 Expected: All tests PASS. Fix any compilation errors before continuing.
 
-- [ ] **Step 10: Commit**
-
-```bash
-git add x/oracle/keeper/ testutil/
-git commit -m "feat(oracle): implement keeper — feed storage, weighted median, TWAP, miss/slash counters"
-```
-
 ---
 
 ## Task 5: Implement EndBlock (ABCI Hook)
@@ -1209,13 +1181,6 @@ go test ./x/oracle/... -run TestEndBlocker -v
 ```
 
 Expected: Both PASS.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add x/oracle/abci.go x/oracle/abci_test.go
-git commit -m "feat(oracle): implement EndBlocker — window aggregation, miss slash, feed cleanup"
-```
 
 ---
 
@@ -1351,13 +1316,6 @@ go test ./x/oracle/... -v -timeout 2m
 
 Expected: All tests PASS.
 
-- [ ] **Step 5: Commit**
-
-```bash
-git add x/oracle/
-git commit -m "feat(oracle): implement msg server, genesis, module wiring"
-```
-
 ---
 
 ## Task 7: Wire x/oracle into app/app.go
@@ -1447,13 +1405,6 @@ make build && make test
 ```
 
 Expected: Zero errors.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add app/app.go app/app_test.go
-git commit -m "feat: wire x/oracle into app — keeper, module manager, store key"
-```
 
 ---
 

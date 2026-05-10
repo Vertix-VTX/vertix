@@ -112,13 +112,6 @@ go build ./...
 
 Expected: No output (success). If errors appear, run `go mod tidy` first.
 
-- [ ] **Step 4: Commit scaffold baseline**
-
-```bash
-git add .
-git commit -m "chore: ignite scaffold chain vertix baseline"
-```
-
 ---
 
 ## Task 3: Configure Vertix Chain Identity in config.yml
@@ -216,13 +209,6 @@ ignite chain serve --reset-once 2>&1 | grep -E "(started|chain|error|panic)" | h
 ```
 
 Expected: Chain starts, block height increments. No panic or error lines. Press Ctrl+C after confirming.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add config.yml
-git commit -m "config: Vertix chain identity — uvtx denom, vtx bech32, devnet genesis params"
-```
 
 ---
 
@@ -384,13 +370,6 @@ Expected output:
 PASS
 ```
 
-- [ ] **Step 8: Commit**
-
-```bash
-git add app/app.go app/app_test.go
-git commit -m "feat: remove x/mint — enforce 21M VTX hard cap, zero inflation"
-```
-
 ---
 
 ## Task 5: Verify All Required Standard Modules Are Wired
@@ -439,13 +418,6 @@ go test ./app/... -run TestRequiredModulesPresent -v
 ```
 
 Expected: PASS. If a module is missing, add it to `app/app.go` following the existing pattern for other modules.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add app/app_test.go
-git commit -m "test: verify required SDK modules are wired in app"
-```
 
 ---
 
@@ -544,13 +516,6 @@ make test
 
 Expected: All tests pass.
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add Makefile
-git commit -m "build: replace scaffold Makefile with full dev targets"
-```
-
 ---
 
 ## Task 7: Configure golangci-lint
@@ -610,13 +575,6 @@ make lint
 ```
 
 Expected: No errors (or only pre-existing scaffold issues — fix any `errcheck` or `govet` findings in modified files).
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add .golangci.yml
-git commit -m "ci: add golangci-lint configuration"
-```
 
 ---
 
@@ -722,13 +680,6 @@ jobs:
           build/vertixd genesis validate-genesis --home /tmp/vertix-ci
 ```
 
-- [ ] **Step 2: Commit**
-
-```bash
-git add .github/workflows/ci.yml
-git commit -m "ci: add GitHub Actions pipeline — lint, build, test, validate-genesis"
-```
-
 ---
 
 ## Task 9: Integration Verification — Chain Boots and Produces Blocks
@@ -808,13 +759,6 @@ pkill -f "vertixd start"
 ```
 
 Expected: Block height increases between the two queries. Supply shows `uvtx`. Denom metadata returns `symbol: VTX`.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add app/app_test.go
-git commit -m "test: integration smoke test — genesis export, module presence"
-```
 
 ---
 
