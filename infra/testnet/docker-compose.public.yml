@@ -97,7 +97,10 @@ services:
     volumes: ["../explorer/chains/vertix-testnet.json:/app/chains/mainnet/vertix.json:ro"]
     ports: ["8080:80"]
 
+  # Optional: ghcr.io/cosmjs/faucet may return "denied" with stale `docker login ghcr.io` creds.
+  # Local smoke tests fund via bank send from the genesis faucet key (see join-smoke.sh).
   faucet:
+    profiles: [faucet]
     image: ${FAUCET_IMAGE}
     restart: unless-stopped
     networks: [testnet]
@@ -132,7 +135,7 @@ services:
     ports: ["3000:3000"]
 
   tenderduty:
-    profiles: [monitoring]
+    profiles: [tenderduty]
     image: ${TENDERDUTY_IMAGE}
     restart: unless-stopped
     networks: [testnet]

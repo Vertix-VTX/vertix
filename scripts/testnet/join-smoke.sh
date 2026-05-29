@@ -19,8 +19,16 @@ assert_gt "$H" "1" "chain height > 1 ($H)"
 log "[2/4] create + fund a joiner operator key"
 vtx keys add joiner --keyring-backend test --keyring-dir /keyring 2>/dev/null || true
 JADDR=$(vtx keys show joiner -a --keyring-backend test --keyring-dir /keyring)
-# fund from faucet
-docker run --rm --network "$NET" "$VERTIX_IMAGE" sh -c "curl -s -X POST http://faucet:8000/credit -H 'Content-Type: application/json' -d '{\"denom\":\"uvtx\",\"address\":\"$JADDR\"}'" || true
+# Fund joiner: prefer genesis faucet key (no Cosmfaucet container). Fall back to HTTP faucet if running.
+if vtx keys show faucet -a --keyring-backend test --keyring-dir /keyring >/dev/null 2>&1; then
+  FAUCET_ADDR=$(vtx keys show faucet -a --keyring-backend test --keyring-dir /keyring)
+  vtx tx bank send "$FAUCET_ADDR" "$JADDR" 10000000uvtx --from faucet \
+    --keyring-backend test --keyring-dir /keyring \
+    --chain-id "$CHAIN_ID" --node "$RPC" --fees 4000uvtx --gas 200000 -y >/dev/null || true
+else
+  docker run --rm --network "$NET" "$VERTIX_IMAGE" sh -c \
+    "curl -sf -X POST http://faucet:8000/credit -H 'Content-Type: application/json' -d '{\"denom\":\"uvtx\",\"address\":\"$JADDR\"}'" || true
+fi
 sleep 8
 BAL=$(vtx query bank balances "$JADDR" --node "$RPC" -o json | jq -r '.balances[]? | select(.denom=="uvtx") | .amount')
 assert_gt "${BAL:-0}" "0" "joiner funded ($BAL uvtx)"

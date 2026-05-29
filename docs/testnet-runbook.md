@@ -20,10 +20,14 @@ make testnet-genesis
 #    - genesis.sha256
 #    - seeds.txt
 
-# 3. Start founder stack (chain + faucet + monitoring; explorer is optional)
+# 3. Start founder stack (validators + sentries + feeders; no ghcr.io pulls)
 make testnet-up
-# Optional Ping.pub UI (if ghcr pull fails: `docker logout ghcr.io`, then retry)
-make testnet-up-explorer
+# Optional services (ghcr.io images may need `docker logout ghcr.io` first):
+make testnet-up-faucet        # Cosmfaucet HTTP :8000
+make testnet-up-monitoring    # Prometheus :9095 + Grafana :3000
+make testnet-up-tenderduty    # Tenderduty :8888
+make testnet-up-explorer      # Ping.pub :8080
+# Or all optional layers: make testnet-up-all
 
 # 4. Verify block production (~30s after up)
 curl -s http://localhost:26657/status | jq -r '.result.sync_info.latest_block_height'

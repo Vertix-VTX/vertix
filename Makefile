@@ -211,17 +211,29 @@ testnet-genesis: devnet-docker-build testnet-tag-image
 	@./scripts/testnet/build-genesis.sh
 
 testnet-up: testnet-genesis
-	@echo "--> Starting public testnet founder stack (chain + faucet + monitoring)"
+	@echo "--> Starting public testnet founder stack (validators, sentries, feeders)"
+	@$(TESTNET_COMPOSE) up -d
+
+testnet-up-faucet:
+	@echo "--> Starting Cosmfaucet (profile: faucet)"
+	@$(TESTNET_COMPOSE) --profile faucet up -d
+
+testnet-up-monitoring:
+	@echo "--> Starting Prometheus + Grafana (profile: monitoring)"
 	@$(TESTNET_COMPOSE) --profile monitoring up -d
+
+testnet-up-tenderduty:
+	@echo "--> Starting Tenderduty (profile: tenderduty)"
+	@$(TESTNET_COMPOSE) --profile tenderduty up -d
 
 testnet-up-explorer:
 	@echo "--> Starting Ping.pub explorer (profile: explorer)"
 	@$(TESTNET_COMPOSE) --profile explorer up -d
 
-testnet-up-all: testnet-up testnet-up-explorer
+testnet-up-all: testnet-up testnet-up-faucet testnet-up-monitoring testnet-up-tenderduty testnet-up-explorer
 
 testnet-down:
-	@$(TESTNET_COMPOSE) --profile monitoring --profile explorer down -v
+	@$(TESTNET_COMPOSE) --profile faucet --profile monitoring --profile tenderduty --profile explorer down -v
 
 testnet-join-smoke:
 	@./scripts/testnet/join-smoke.sh
@@ -232,7 +244,7 @@ testnet-demo:
 testnet-integration-verify:
 	@./scripts/testnet/integration-verify.sh
 
-.PHONY: testnet-tag-image testnet-genesis testnet-up testnet-up-explorer testnet-up-all testnet-down testnet-join-smoke testnet-demo testnet-integration-verify
+.PHONY: testnet-tag-image testnet-genesis testnet-up testnet-up-faucet testnet-up-monitoring testnet-up-tenderduty testnet-up-explorer testnet-up-all testnet-down testnet-join-smoke testnet-demo testnet-integration-verify
 
 ###################
 ###  Load test  ###
