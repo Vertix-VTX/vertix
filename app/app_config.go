@@ -41,6 +41,10 @@ import (
 	ibcfeetypes "github.com/cosmos/ibc-go/v8/modules/apps/29-fee/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+
+	oraclemodulev1 "github.com/vertix-network/vertix/api/vertix/oracle/module"
+	_ "github.com/vertix-network/vertix/x/oracle/module" // import for side-effects
+	oraclemoduletypes "github.com/vertix-network/vertix/x/oracle/types"
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 )
 
@@ -58,6 +62,7 @@ var (
 		banktypes.ModuleName,
 		distrtypes.ModuleName,
 		stakingtypes.ModuleName,
+		oraclemoduletypes.ModuleName,
 		slashingtypes.ModuleName,
 		govtypes.ModuleName,
 		crisistypes.ModuleName,
@@ -73,7 +78,6 @@ var (
 		upgradetypes.ModuleName,
 		vestingtypes.ModuleName,
 		consensustypes.ModuleName,
-		// chain modules
 		// this line is used by starport scaffolding # stargate/app/initGenesis
 	}
 
@@ -96,7 +100,6 @@ var (
 		ibctransfertypes.ModuleName,
 		icatypes.ModuleName,
 		ibcfeetypes.ModuleName,
-		// chain modules
 		// this line is used by starport scaffolding # stargate/app/beginBlockers
 	}
 
@@ -114,6 +117,7 @@ var (
 		icatypes.ModuleName,
 		ibcfeetypes.ModuleName,
 		// chain modules
+		oraclemoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/endBlockers
 	}
 
@@ -245,6 +249,10 @@ var (
 			{
 				Name:   consensustypes.ModuleName,
 				Config: appconfig.WrapAny(&consensusmodulev1.Module{}),
+			},
+			{
+				Name:   oraclemoduletypes.ModuleName,
+				Config: appconfig.WrapAny(&oraclemodulev1.Module{}),
 			},
 			// this line is used by starport scaffolding # stargate/app/moduleConfig
 		},

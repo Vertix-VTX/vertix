@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/vertix-network/vertix/app"
+	oracletypes "github.com/vertix-network/vertix/x/oracle/types"
 )
 
 // newTestApp builds an in-memory App for wiring assertions.
@@ -57,4 +58,17 @@ func TestGenesisRoundTrip(t *testing.T) {
 	require.NotEmpty(t, genState)
 	_, hasMint := genState[minttypes.ModuleName]
 	require.False(t, hasMint, "default genesis must not contain a mint section")
+}
+
+func TestOracleModuleWired(t *testing.T) {
+	a := newTestApp(t)
+	_, ok := a.ModuleManager.Modules[oracletypes.ModuleName]
+	require.True(t, ok, "x/oracle must be wired")
+	require.NotNil(t, a.OracleKeeper)
+}
+
+func TestOracleGenesisRoundTrip(t *testing.T) {
+	a := newTestApp(t)
+	genState := a.DefaultGenesis()
+	require.Contains(t, genState, oracletypes.ModuleName)
 }

@@ -1,0 +1,83 @@
+syntax = "proto3";
+package vertix.oracle.v1;
+
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "vertix/oracle/v1/types.proto";
+
+option go_package = "github.com/vertix-network/vertix/x/oracle/types";
+
+// Query defines the oracle module gRPC querier.
+service Query {
+  // Price returns the latest aggregated price for a pair.
+  rpc Price(QueryPriceRequest)             returns (QueryPriceResponse) {
+    option (google.api.http).get = "/vertix/oracle/v1/price/{pair}";
+  }
+  // Twap returns the time-weighted average price for a pair and window.
+  rpc Twap(QueryTwapRequest)               returns (QueryTwapResponse) {
+    option (google.api.http).get = "/vertix/oracle/v1/twap/{pair}/{window_seconds}";
+  }
+  // Params returns the current module parameters.
+  rpc Params(QueryParamsRequest)           returns (QueryParamsResponse) {
+    option (google.api.http).get = "/vertix/oracle/v1/params";
+  }
+  // MissCounter returns miss statistics for a validator.
+  rpc MissCounter(QueryMissCounterRequest) returns (QueryMissCounterResponse) {
+    option (google.api.http).get = "/vertix/oracle/v1/miss_counter/{validator}";
+  }
+  // Feeder returns the feeder account delegated by a validator.
+  rpc Feeder(QueryFeederRequest)           returns (QueryFeederResponse) {
+    option (google.api.http).get = "/vertix/oracle/v1/feeder/{validator}";
+  }
+}
+
+// QueryPriceRequest is the request type for Query/Price.
+message QueryPriceRequest {
+  string pair = 1;
+}
+
+// QueryPriceResponse is the response type for Query/Price.
+message QueryPriceResponse {
+  AggregatedPrice price = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryTwapRequest is the request type for Query/Twap.
+message QueryTwapRequest {
+  string pair            = 1;
+  uint64 window_seconds  = 2;
+}
+
+// QueryTwapResponse is the response type for Query/Twap.
+message QueryTwapResponse {
+  string price = 1 [(gogoproto.customtype) = "cosmossdk.io/math.LegacyDec", (gogoproto.nullable) = false];
+}
+
+// QueryParamsRequest is the request type for Query/Params.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is the response type for Query/Params.
+message QueryParamsResponse {
+  OracleParams params = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryMissCounterRequest is the request type for Query/MissCounter.
+message QueryMissCounterRequest {
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+// QueryMissCounterResponse is the response type for Query/MissCounter.
+message QueryMissCounterResponse {
+  int64 misses        = 1;
+  int64 total_windows = 2;
+}
+
+// QueryFeederRequest is the request type for Query/Feeder.
+message QueryFeederRequest {
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+// QueryFeederResponse is the response type for Query/Feeder.
+message QueryFeederResponse {
+  string feeder = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}

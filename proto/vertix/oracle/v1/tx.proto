@@ -1,0 +1,59 @@
+syntax = "proto3";
+package vertix.oracle.v1;
+
+import "amino/amino.proto";
+import "cosmos/msg/v1/msg.proto";
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "vertix/oracle/v1/types.proto";
+
+option go_package = "github.com/vertix-network/vertix/x/oracle/types";
+
+// Msg defines the oracle module transaction service.
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+  // SetFeeder delegates price submission to a feeder account.
+  rpc SetFeeder(MsgSetFeeder)       returns (MsgSetFeederResponse);
+  // SubmitFeed submits a validator price vote for a pair.
+  rpc SubmitFeed(MsgSubmitFeed)     returns (MsgSubmitFeedResponse);
+  // UpdateParams updates module parameters via governance authority.
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+}
+
+// MsgSetFeeder sets the feeder account for a validator.
+message MsgSetFeeder {
+  option (cosmos.msg.v1.signer) = "validator";
+  option (amino.name)           = "vertix/x/oracle/MsgSetFeeder";
+
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string feeder    = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+// MsgSetFeederResponse is the response for MsgSetFeeder.
+message MsgSetFeederResponse {}
+
+// MsgSubmitFeed submits a price feed from a delegated feeder.
+message MsgSubmitFeed {
+  option (cosmos.msg.v1.signer) = "feeder";
+  option (amino.name)           = "vertix/x/oracle/MsgSubmitFeed";
+
+  string feeder    = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string validator = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string pair      = 3;
+  string price     = 4 [(cosmos_proto.scalar) = "cosmos.Dec"];
+}
+
+// MsgSubmitFeedResponse is the response for MsgSubmitFeed.
+message MsgSubmitFeedResponse {}
+
+// MsgUpdateParams updates oracle module parameters.
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name)           = "vertix/x/oracle/MsgUpdateParams";
+
+  string       authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  OracleParams params    = 2 [(gogoproto.nullable) = false];
+}
+
+// MsgUpdateParamsResponse is the response for MsgUpdateParams.
+message MsgUpdateParamsResponse {}

@@ -1,0 +1,44 @@
+syntax = "proto3";
+package vertix.oracle.v1;
+
+import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/vertix-network/vertix/x/oracle/types";
+
+// OracleFeed is a single validator price vote for a pair at a block height.
+message OracleFeed {
+  string validator    = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string pair         = 2;
+  string price        = 3 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  int64  block_height = 4;
+}
+
+// AggregatedPrice is the stake-weighted median price for a pair.
+message AggregatedPrice {
+  string                    pair         = 1;
+  string                    price        = 2 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  int64                     block_height = 3;
+  google.protobuf.Timestamp block_time   = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// TWAPEntry is one sample in the time-weighted average price ring buffer.
+message TWAPEntry {
+  string                    pair       = 1;
+  string                    price      = 2 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  google.protobuf.Timestamp block_time = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// OracleParams defines module governance parameters.
+message OracleParams {
+  int64           vote_window        = 1;
+  string          miss_threshold     = 2 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  string          miss_slash_rate     = 3 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  string          outlier_slash_rate  = 4 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  string          outlier_threshold   = 5 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  int64           miss_window_size    = 6;
+  string          quorum_fraction     = 7 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  int64           max_price_age       = 8;
+  repeated string accept_list         = 9;
+}
