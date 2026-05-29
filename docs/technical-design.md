@@ -56,31 +56,40 @@ For higher-level context see [`architecture.md`](./architecture.md). For the app
 
 ## 2. `x/oracle` — Module Design
 
+> **Phase 1 design-spec refinement (2026-05-29).** The Phase 1 brainstorm + design review ([`specs/2026-05-29-phase-1-oracle-module-design.md`](./specs/2026-05-29-phase-1-oracle-module-design.md)) refined several items below; this section is synced to match. Key changes: **feeder delegation** (the feeder, not the operator, signs `MsgSubmitFeed`), **quorum-gated** aggregation, **unweighted-median** outlier reference, **tumbling** miss window, **price staleness** (`max_price_age`), `StakingKeeper.GetValidator` (not `GetValidatorByConsAddr`), `SlashingKeeper.Slash` returns `error` only, and per-validator window counters.
+
 ### 2.1 Responsibilities
-- Accept per-validator price submissions per `MsgSubmitFeed`.
-- At end of each `VoteWindow`, aggregate via stake-weighted median per pair.
-- Maintain TWAP histories per pair.
-- Track per-validator misses; trigger slashes via `x/slashing`.
+- Accept feeder-submitted, per-validator price submissions per `MsgSubmitFeed` (feeder delegated via `MsgSetFeeder`).
+- At end of each `VoteWindow`, aggregate via stake-weighted median per pair **when submissions reach `QuorumFraction` of bonded power**.
+- Maintain TWAP histories per pair; serve prices/TWAP with a `MaxPriceAge` staleness guard.
+- Track per-validator misses (tumbling window) and outliers; trigger slashes via `x/slashing`.
 - Expose a clean keeper interface to `x/rwa`.
 
 ### 2.2 Protobuf Surface
 
 ```
 proto/vertix/oracle/v1/
-├── types.proto    OracleFeed, AggregatedPrice, TWAPEntry, OracleParams
-├── tx.proto       MsgSubmitFeed, MsgUpdateParams (+ responses)
-├── query.proto    GetPrice, GetTWAP, GetParams, GetMissCounter
+├── types.proto    OracleFeed, AggregatedPrice, TWAPEntry, OracleParams, FeederDelegation
+├── tx.proto       MsgSetFeeder, MsgSubmitFeed, MsgUpdateParams (+ responses)
+├── query.proto    Price, Twap, Params, MissCounter, Feeder
 └── genesis.proto  GenesisState
 ```
 
-Key messages:
+Key messages (feeder signs `MsgSubmitFeed`, operator signs `MsgSetFeeder` — Phase 1 spec D10):
 
 ```protobuf
-message MsgSubmitFeed {
+message MsgSetFeeder {
   option (cosmos.msg.v1.signer) = "validator";
-  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
-  string pair      = 2;   // "BASE:QUOTE", e.g. "VTX:USD"
-  string price     = 3;   // LegacyDec encoded as string
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"]; // valoper
+  string feeder    = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"]; // authorized account
+}
+
+message MsgSubmitFeed {
+  option (cosmos.msg.v1.signer) = "feeder";
+  string feeder    = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"]; // signer (delegated feeder)
+  string validator = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"]; // valoper the feed is for
+  string pair      = 3;   // "BASE:QUOTE", e.g. "VTX:USD"
+  string price     = 4;   // LegacyDec encoded as string
 }
 
 message OracleParams {
@@ -88,7 +97,11 @@ message OracleParams {
   string miss_threshold      = 2; // LegacyDec, e.g. "0.05"
   string miss_slash_rate     = 3; // LegacyDec, e.g. "0.005"
   string outlier_slash_rate  = 4; // LegacyDec, e.g. "0.01"
-  repeated string accept_list = 5; // whitelisted pairs
+  string outlier_threshold   = 5; // LegacyDec, e.g. "0.05" — band vs UNWEIGHTED median
+  int64  miss_window_size    = 6; // tumbling eval window in windows, e.g. 500
+  string quorum_fraction     = 7; // LegacyDec, e.g. "0.667" — min bonded power to aggregate
+  int64  max_price_age       = 8; // seconds; staleness ceiling for GetPrice/GetTWAP, e.g. 300
+  repeated string accept_list = 9; // whitelisted pairs
 }
 ```
 
@@ -98,23 +111,28 @@ message OracleParams {
 
 ```go
 type OracleKeeper interface {
+    // Returns ErrNoPrice if never aggregated, ErrStalePrice if older than MaxPriceAge.
     GetPrice(ctx context.Context, pair string) (math.LegacyDec, error)
     GetTWAP(ctx context.Context, pair string, window time.Duration) (math.LegacyDec, error)
 }
 ```
 
+`x/rwa` (Phase 3) MUST treat both `ErrNoPrice` and `ErrStalePrice` as attestation failures.
+
 **External dependencies (held by keeper):**
 
 ```go
 type StakingKeeper interface {
-    GetValidatorByConsAddr(ctx context.Context, addr sdk.ConsAddress) (stakingtypes.Validator, error)
+    GetValidator(ctx context.Context, addr sdk.ValAddress) (stakingtypes.Validator, error) // valoper → record
     GetLastValidatorPower(ctx context.Context, addr sdk.ValAddress) (int64, error)
     GetBondedValidatorsByPower(ctx context.Context) ([]stakingtypes.Validator, error)
+    TotalBondedTokens(ctx context.Context) (math.Int, error)                               // quorum denominator
 }
 
+// Slash returns error only in SDK v0.50 (no math.Int). Jail is intentionally NOT used
+// for oracle infractions (Phase 1 spec D7) to avoid validator chilling.
 type SlashingKeeper interface {
-    Slash(ctx context.Context, consAddr sdk.ConsAddress, fraction math.LegacyDec, power, distributionHeight int64) (math.Int, error)
-    Jail(ctx context.Context, consAddr sdk.ConsAddress) error
+    Slash(ctx context.Context, consAddr sdk.ConsAddress, fraction math.LegacyDec, power, distributionHeight int64) error
 }
 ```
 
@@ -125,11 +143,13 @@ type SlashingKeeper interface {
 | `0x01` | `{validator}/{pair}` | `OracleFeed` (current window) |
 | `0x02` | `{pair}` | `AggregatedPrice` (latest) |
 | `0x03` | `{pair}/{ts_unixnano_be}` | `TWAPEntry` (history) |
-| `0x04` | `{validator}` | `int64` miss counter |
-| `0x05` | `(empty)` | `int64` total completed windows |
+| `0x04` | `{validator}` | `int64` miss counter (tumbling) |
+| `0x05` | `{validator}` | `int64` total windows (**per-validator**, tumbling) |
 | `0x06` | `(empty)` | `OracleParams` |
+| `0x07` | `{feeder_acc}` | `{valoper}` (feeder → validator) |
+| `0x08` | `{valoper}` | `{feeder_acc}` (reverse index) |
 
-Keys are big-endian encoded for ordered iteration where required (TWAP timestamp scans).
+Keys are big-endian encoded for ordered iteration where required (TWAP timestamp scans). `0x05` is **per-validator** (Phase 1 spec D6): a correct miss-rate needs per-validator totals because validators bond at different heights. `0x07`/`0x08` hold feeder delegations (Phase 1 spec D10) and round-trip through genesis.
 
 ### 2.5 ABCI: `EndBlock` Algorithm
 
@@ -139,51 +159,75 @@ EndBlock(ctx):
     if BlockHeight % params.VoteWindow != 0:
         return                                           # mid-window: no-op
 
-    windowNumber = BlockHeight / params.VoteWindow
+    vals        = BondedValidatorsByPower()              # sorted, deterministic
+    valByOper   = { v.Operator: v for v in vals }        # built once; read-by-key only
+    totalBonded = TotalBondedTokens()
+    quorumLive  = {}
 
-    # 1. Aggregate per pair
+    # 1. Aggregate (quorum-gated) per pair
     for pair in params.AcceptList:
-        feeds = GetAllFeedsForPair(pair)
+        feeds = GetAllFeedsForPair(pair)                 # parse defensively; skip bad/non-positive (no panic)
         if feeds is empty: continue
-        prices, weights = (f.Price, validatorPower(f.Validator)) for f in feeds
-        median = WeightedMedian(prices, weights)
+        submittedPower = Σ power(f.Validator)
+        if submittedPower / totalBonded < params.QuorumFraction:
+            continue                                     # below quorum: no price, no TWAP, not a miss
+        quorumLive.add(pair)
+        median    = WeightedMedian(prices, weights)      # STAKE-weighted → published price
+        refMedian = UnweightedMedian(prices)             # COUNT-based   → outlier reference
         SetAggregatedPrice(pair, median, height, blockTime)
         AppendTWAPEntry(pair, median, blockTime)
         emit EventPriceAggregated
+        for f in feeds:                                  # outlier slash vs UNWEIGHTED median
+            if |f.Price - refMedian| / refMedian > params.OutlierThreshold:
+                slash(valByOper[f.Validator], params.OutlierSlashRate, "outlier")
 
-    # 2. Slash misses
-    for v in BondedValidatorsByPower():
-        miss = GetMissCounter(v.Operator)
-        threshold = params.MissThreshold * windowNumber
-        if miss > threshold:
-            slashingKeeper.Slash(consAddr, params.MissSlashRate, power, height)
-            emit EventOracleSlash
-        ResetMissCounter(v.Operator)
+    # 2. Miss tracking + slash (tumbling window; only vs quorum-live pairs)
+    for v in vals:
+        total = inc 0x05[v]
+        if not (quorumLive ⊆ pairs v submitted): miss = inc 0x04[v]
+        else:                                    miss = get 0x04[v]
+        if total >= params.MissWindowSize:               # tumbling boundary
+            if miss/total > params.MissThreshold:
+                slash(v, params.MissSlashRate, "miss")
+            reset 0x04[v]; reset 0x05[v]
 
     # 3. Clear feeds for next window
     DeleteAllFeeds()
+
+slash(v, rate, reason):                                  # NO Jail (D7); distributionHeight = height
+    power = GetLastValidatorPower(v.Operator); if power == 0: return
+    slashingKeeper.Slash(v.ConsAddr(), rate, power, height)   # returns error only
+    emit EventOracleSlash{validator, slash_reason, slash_fraction=rate}
 ```
 
-**Stake-weighted median** (`WeightedMedian(prices, weights)`):
-- Sort `(price, weight)` pairs by price ascending.
-- Walk in order, accumulating weight; the first price whose cumulative weight ≥ `totalWeight / 2` is the result.
+**Stake-weighted median** (`WeightedMedian(prices, weights)`) — the *published* price:
+- Sort `(price, weight)` pairs by `(price, valoper)` ascending (valoper tie-break for determinism).
+- Walk in order, accumulating weight; the first price whose cumulative weight ≥ `totalWeight / 2` is the result (lower-side on exact half).
+
+**Unweighted median** (`UnweightedMedian(prices)`) — the *outlier reference* only (Phase 1 spec D2/H1): each validator counts once, so a high-stake validator cannot move the band and slash the honest minority.
+
+**Quorum gate** (Phase 1 spec D11/C2): a pair aggregates only when submitting power ≥ `QuorumFraction × totalBonded`. This prevents a single validator from setting the price and is the gate the miss check uses, so an under-covered or freshly-added pair never slashes the whole set. On any `accept_list` change via `MsgUpdateParams`, `0x04`/`0x05` are reset.
 
 ### 2.6 Slashing Conditions
 
 | Trigger | Rate | Module that executes |
 |---|---|---|
-| Miss rate > `MissThreshold` (default 5%) over completed windows | `MissSlashRate` (default 0.5%) | `x/slashing.Slash` (called from `x/oracle.EndBlock`) |
-| Outlier submission (z-score / interquartile threshold) | `OutlierSlashRate` (default 1.0%) | Same |
+| Miss rate > `MissThreshold` (default 5%) over a tumbling `MissWindowSize` (default 500) windows, counting only quorum-live pairs | `MissSlashRate` (default 0.5%) | `x/slashing.Slash` (called from `x/oracle.EndBlock`) |
+| Outlier submission: `|price − unweightedMedian| / unweightedMedian > OutlierThreshold` (default 5%) | `OutlierSlashRate` (default 1.0%) | Same |
 
-Note: oracle slashing is intentionally lighter than double-sign (5%) to avoid validator chilling and accidental jailing.
+Note: oracle slashing is intentionally lighter than double-sign (5%) and **never jails** (Phase 1 spec D7) to avoid validator chilling and accidental jailing. The outlier reference is the **unweighted** window median (D2/H1), not the stake-weighted published price. MAD-based detection and a sliding-window bitmap are documented Phase-7 upgrades.
 
 ### 2.7 Events
 
 | Event | Attributes |
 |---|---|
-| `oracle_feed_submitted` | `validator`, `pair`, `price` |
+| `oracle_feeder_set` | `validator`, `feeder` |
+| `oracle_feed_submitted` | `validator`, `feeder`, `pair`, `price` |
 | `oracle_price_aggregated` | `pair`, `price` |
-| `oracle_slash` | `validator`, `slash_reason`, `slash_amount` |
+| `oracle_slash` | `validator`, `slash_reason`, `slash_fraction` |
+| `oracle_params_updated` | `accept_list_changed` |
+
+`oracle_slash` carries `slash_fraction` (the applied rate), not an absolute amount, because `SlashingKeeper.Slash` returns `error` only in SDK v0.50 (Phase 1 spec §4).
 
 ---
 
@@ -442,9 +486,10 @@ type PriceProvider interface {
 
 ### 5.5 Operational Contract with `x/oracle`
 
-- The validator **must** keep the feeder's broadcast keys hot enough to sign every block of every window.
-- A submission is "missed" if no `MsgSubmitFeed` from this validator for an accepted pair lands during the window.
-- Misses across `MissThreshold` of windows trigger a `MissSlashRate` slash.
+- The validator delegates a **feeder** account via `MsgSetFeeder`; the sidecar signs `MsgSubmitFeed` with that **delegated feeder key only** — never the operator key (Phase 1 spec D10/C1). The feeder key is low-value and rotatable: a compromise lets an attacker submit feeds (bounded by outlier slashing) but touches no funds, and the operator can re-delegate to rotate it.
+- The feeder must stay hot enough to submit each window, and must submit **all `accept_list` pairs** it can; a validator "misses" a window if it fails to submit any pair **that reached quorum** that window (under-covered/new pairs do not count).
+- A submission is "missed" if no `MsgSubmitFeed` for this validator on a quorum-live accepted pair lands during the window.
+- Misses exceeding `MissThreshold` over a tumbling `MissWindowSize` window trigger a `MissSlashRate` slash; outlier submissions (vs the unweighted window median) trigger `OutlierSlashRate`.
 
 ---
 
@@ -462,7 +507,7 @@ type PriceProvider interface {
 
 ### 6.2 Threat Model Highlights
 
-- **Oracle manipulation:** mitigated by stake-weighted median + outlier slashing. Feed pump from a single high-stake validator still costs them on outlier detection.
+- **Oracle manipulation:** mitigated by quorum-gated stake-weighted median (a pair needs ≥ `QuorumFraction` of bonded power before it produces a price, so a small minority cannot set it) plus outlier slashing measured against the **unweighted** window median. The unweighted reference is deliberate: comparing against the stake-weighted price would let a >50%-stake validator define the band and slash the honest minority (Phase 1 spec H1). A high-stake validator pushing an off-market price is still flagged as an outlier (it deviates from the count-based median) unless it also controls a majority of *distinct validators*, which the bonding/`min_commission` requirements make expensive.
 - **RWA bond bypass:** mint and ante checks both validate `AssetStatus == ACTIVE` and a bonded record. Module account balance invariants caught by `x/crisis`.
 - **Inflation attack:** `x/mint` is not registered; presence is asserted in `app/app_test.go`. Adding it back requires a hard-fork upgrade plus governance.
 - **Fee bypass:** `MsgMintRWA` and `MsgSettleRWA` compute fees inside the keeper; fee debit is part of the same atomic message handler.
@@ -536,9 +581,10 @@ For binary upgrades, every store-key change must ship a migration handler in the
 
 ```go
 // x/oracle
-GetPrice(ctx, pair) (math.LegacyDec, error)
+GetPrice(ctx, pair) (math.LegacyDec, error)   // ErrNoPrice | ErrStalePrice
 GetTWAP(ctx, pair, window) (math.LegacyDec, error)
-SubmitFeed(MsgSubmitFeed) → MsgSubmitFeedResponse
+SetFeeder(MsgSetFeeder)        // operator delegates a feeder key
+SubmitFeed(MsgSubmitFeed) → MsgSubmitFeedResponse   // signed by the delegated feeder
 UpdateParams(MsgUpdateParams)
 
 // x/rwa

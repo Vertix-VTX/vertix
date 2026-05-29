@@ -212,4 +212,10 @@ A focused list of the items that most deserve senior attention, early prototypin
 - Difficulty ≠ duration. Phase 8 is "low logic" but spans 4+ weeks of wall-clock endurance testing.
 - Scores are relative within this project, not absolute.
 - Open questions in Appendix C (outlier method, dispute resolution, provider set, TPS target, Day-1 channels) can each raise their phase's difficulty once resolved; revisit this analysis after each per-phase brainstorm.
+
+---
+
+## 8. Update log
+
+- **2026-05-29 — Phase 1 design review applied.** A careful review of [`2026-05-29-phase-1-oracle-module-design.md`](./2026-05-29-phase-1-oracle-module-design.md) surfaced and resolved the phase's top risks: operator-key exposure (now feeder delegation), whole-set correlated slashing (now quorum-gated miss accounting), the stake-capture outlier inversion (now unweighted-median reference), miss-rate mis-calibration (now a tumbling window), and stale-price attestation (now `max_price_age`/`ErrStalePrice`). This lowers Phase 1's *latent* economic risk but does not change its 🔴 overall band — the `EndBlock` determinism + slashing surface remains the hardest engineering in the program. Recommendation 1's "outlier-detection open question" is now resolved (fixed-band vs unweighted median; MAD deferred to Phase 7).
 ```
