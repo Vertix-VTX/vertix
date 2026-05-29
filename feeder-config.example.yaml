@@ -1,0 +1,48 @@
+# vertix-feeder example configuration.
+# Copy to feeder-config.yaml and edit for your validator.
+
+chain_id: vertix-devnet-1
+node_grpc: localhost:9090          # gRPC: account/sequence queries + tx broadcast
+validator: vtxvaloper1...          # valoper this feeder submits for (-> MsgSubmitFeed.validator)
+key_name: feeder                   # feeder key in the keyring (signs the tx; NEVER the operator key)
+keyring_backend: test              # test | file | os
+keyring_dir: ~/.vertix
+
+fees: 2000uvtx                     # flat fee per window tx (chain min_gas_prices = 0.025uvtx)
+gas: "200000"                      # fixed gas, or "auto" to simulate
+gas_adjustment: 1.3                # used only when gas: auto
+
+feed_interval: 5s                  # price-loop tick
+submit_poll_interval: 1s           # submit-loop height poll
+vote_window: 0                     # 0 = query from chain oracle params at startup; >0 overrides
+broadcast_retries: 3               # bounded retry within the window
+
+quality:
+  min_providers: 2
+  max_deviation: "0.10"            # drop a source > 10% from the cross-source median
+  max_quote_age: 30s               # drop quotes older than this
+
+providers: ["coingecko", "binance", "static"]
+
+static_prices:
+  # BOOTSTRAP PLACEHOLDER — VTX is unlisted pre-mainnet. Replace this with a real
+  # market source (e.g. an Osmosis VTX pool / DEX TWAP provider) once VTX lists.
+  "VTX:USD": "0.10"
+
+pairs:
+  - pair: "VTX:USD"
+    symbols: { static: "VTX:USD" }
+  - pair: "BTC:USD"
+    symbols: { coingecko: "bitcoin",  binance: "BTCUSDT" }
+  - pair: "ETH:USD"
+    symbols: { coingecko: "ethereum", binance: "ETHUSDT" }
+  - pair: "ATOM:USD"
+    symbols: { coingecko: "cosmos",   binance: "ATOMUSDT" }
+  - pair: "USDC:USD"
+    symbols: { coingecko: "usd-coin", binance: "USDCUSDT" }
+
+prometheus:
+  enabled: true
+  port: 9200
+
+log_level: info

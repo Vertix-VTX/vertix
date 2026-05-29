@@ -348,7 +348,7 @@ When this spec disagrees with another doc on **phase order or cross-phase contra
 - **Dispute resolution** (Phase 3): RESOLVED — governance-only `MsgSlashBond`
   force-settles the asset and routes the bond to the community pool. See
   `specs/2026-05-29-phase-3-rwa-module-design.md` D7.
-- **Provider set + weighting** (Phase 4): default provider list and handling of provider disagreement/outages.
+- **Provider set + weighting** (Phase 4): **Resolved** — CoinGecko + Binance + a Static provider (Static bootstraps VTX:USD until listing); disagreement handled by a configurable cross-source median with strict defaults (min_providers=2, max_deviation=0.10, max_quote_age), skipping under-covered pairs. See [specs/2026-05-29-phase-4-feeder-sidecar-design.md](./specs/2026-05-29-phase-4-feeder-sidecar-design.md) §2 (D2/D3).
 - **TPS target** (Phases 7/9): the concrete throughput/latency bar load tests must clear.
 - **Day-1 IBC channel set** (Phase 10): final confirmation beyond Cosmos Hub.
 

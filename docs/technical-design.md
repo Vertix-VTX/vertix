@@ -432,51 +432,53 @@ EndBlock(ctx):
 ### 5.1 Architecture
 
 ```
-   ┌────────────────────────────────────────────────────┐
-   │                    main loop                       │
-   │                                                    │
-   │  ticker (FeedInterval, default 5s)                 │
-   │       │                                            │
-   │       ▼                                            │
-   │  ┌──────────────────┐                              │
-   │  │ for pair in cfg: │                              │
-   │  │   prices = []    │                              │
-   │  │   for prov in    │                              │
-   │  │     providers:   │                              │
-   │  │     prices ←─    │                              │
-   │  │     prov.Fetch() │                              │
-   │  │   median = med() │                              │
-   │  │   broadcaster    │                              │
-   │  │     .Submit(     │                              │
-   │  │      pair,median)│                              │
-   │  └──────────────────┘                              │
-   │                                                    │
-   │  metrics: feeds_total, errors_total,              │
-   │           provider_latency_ms                      │
-   └────────────────────────────────────────────────────┘
+   Hybrid two-loop design (Phase 4 spec D1):
+
+   price loop (every feed_interval, default 5s)
+     for pair: fetch from each provider -> drop stale/deviating quotes ->
+     if >= min_providers survive: cache[pair] = cross-source median (timestamped)
+     else: mark pair unhealthy (metric), keep last value
+
+   submit loop (every submit_poll_interval)
+     poll latest height -> window = height / VoteWindow
+     if new window and fresh+healthy medians exist:
+       build ONE batched, feeder-signed MsgSubmitFeed tx -> gRPC SYNC broadcast
+       (bounded retry within the window; sequence re-sync on mismatch)
+
+   metrics: feeds_submitted_total, feeds_failed_total, provider_latency_ms,
+            provider_errors_total, last_submit_timestamp
 ```
+
+> Refined by the Phase 4 design spec ([specs/2026-05-29-phase-4-feeder-sidecar-design.md](./specs/2026-05-29-phase-4-feeder-sidecar-design.md)): the loop is split into an interval-driven price loop and a window-gated submit loop so provider latency never affects submission timing and each vote window gets exactly one batched submission.
 
 ### 5.2 Configuration (YAML)
 
 ```yaml
 chain_id: vertix-devnet-1
 node_grpc: localhost:9090
-node_lcd: http://localhost:1317
-validator_key: vtxvaloper1...      # operator address
-key_name: validator
+validator: vtxvaloper1...          # valoper for MsgSubmitFeed.validator
+key_name: feeder                   # feeder signing key (never the operator key)
 keyring_backend: file              # file | os | test
 keyring_dir: ~/.vertix
+fees: 2000uvtx
+gas: "200000"
+gas_adjustment: 1.3
 feed_interval: 5s
-providers: ["coingecko", "binance"]
+submit_poll_interval: 1s
+vote_window: 0
+broadcast_retries: 3
+quality:
+  min_providers: 2
+  max_deviation: "0.10"
+  max_quote_age: 30s
+providers: ["coingecko", "binance", "static"]
+static_prices:
+  "VTX:USD": "0.10"
 pairs:
   - pair: VTX:USD
-    symbols:
-      coingecko: vertix
-      binance:   VTXUSDT
+    symbols: { static: "VTX:USD" }
   - pair: BTC:USD
-    symbols:
-      coingecko: bitcoin
-      binance:   BTCUSDT
+    symbols: { coingecko: bitcoin, binance: BTCUSDT }
 prometheus:
   enabled: true
   port: 9200

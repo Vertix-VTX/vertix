@@ -133,11 +133,15 @@ build:
 	@echo "--> Building $(APPNAME)d"
 	@go build $(BUILD_FLAGS) -mod=readonly -o $(BUILD_DIR)/$(APPNAME)d ./cmd/$(APPNAME)d
 
+feeder-build:
+	@echo "--> Building vertix-feeder"
+	@go build $(BUILD_FLAGS) -mod=readonly -o $(BUILD_DIR)/vertix-feeder ./feeder/cmd/vertix-feeder
+
 clean:
 	@echo "--> Cleaning build artifacts"
 	@rm -rf $(BUILD_DIR) $(COVER_FILE) $(COVER_HTML_FILE)
 
-.PHONY: build clean
+.PHONY: build feeder-build clean
 
 ###################
 ###  Genesis    ###
