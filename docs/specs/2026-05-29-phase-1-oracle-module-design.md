@@ -116,11 +116,13 @@ type StakingKeeper interface {
 }
 
 type SlashingKeeper interface {
-    Slash(ctx context.Context, consAddr sdk.ConsAddress, fraction math.LegacyDec, power, distributionHeight int64) (math.Int, error)
+    Slash(ctx context.Context, consAddr sdk.ConsAddress, fraction math.LegacyDec, power, distributionHeight int64) error
 }
 ```
 
 (`Jail` is intentionally excluded — D7.)
+
+> **Signature note (verified against SDK v0.50.14):** `x/slashing` keeper's `Slash` returns only `error`, not `(math.Int, error)` as `technical-design.md` §2.3 shows. The burned amount is therefore not available to the event emitter — the `oracle_slash` event carries the slash **fraction** (rate) instead of an absolute amount. Flagged as a doc-sync (§13).
 
 ---
 
@@ -306,8 +308,8 @@ WeightedMedian(weighted):
 slash(valoper, rate, reason):
   consAddr = consensus address of valoper
   power    = GetLastValidatorPower(valoper)
-  SlashingKeeper.Slash(consAddr, rate, power, height)            # NO Jail (D7)
-  emit oracle_slash{validator, slash_reason=reason, slash_amount}
+  SlashingKeeper.Slash(consAddr, rate, power, height)            # returns error only; NO Jail (D7)
+  emit oracle_slash{validator, slash_reason=reason, slash_fraction=rate}
 ```
 
 **Determinism guarantees:** `accept_list` iterated in stored order; bonded set via `GetBondedValidatorsByPower` (sorted); `0x01` iteration is over ordered KV keys; no Go-map iteration in the consensus hot path. Outlier and miss slashes are independent (a validator may incur both in one window with distinct events).
@@ -318,7 +320,7 @@ slash(valoper, rate, reason):
 
 - **gRPC + autocli queries:** `vertixd q oracle price [pair]`, `q oracle twap [pair] [window]`, `q oracle params`, `q oracle miss-counter [valoper]`.
 - **Tx CLI:** `vertixd tx oracle submit-feed [pair] [price]` (test/manual; the feeder broadcasts in Phase 4).
-- **Events (typed):** `oracle_feed_submitted{validator,pair,price}`, `oracle_price_aggregated{pair,price}`, `oracle_slash{validator,slash_reason,slash_amount}`.
+- **Events (typed):** `oracle_feed_submitted{validator,pair,price}`, `oracle_price_aggregated{pair,price}`, `oracle_slash{validator,slash_reason,slash_fraction}` (`slash_fraction` is the applied rate; the absolute burned amount is not returned by `x/slashing` — see §4 signature note).
 - **Genesis:** `DefaultGenesis` = `DefaultParams` + no prices; `InitGenesis` sets params (+ any seeded prices); `ExportGenesis` dumps params + current `0x02` prices.
 
 **Documented future enhancements (not in Phase 1):** MAD-based outlier detection (if legitimate feeds trip the fixed band); sliding-window miss tracking (bitmap of last N windows) for recency sensitivity.
@@ -353,6 +355,7 @@ slash(valoper, rate, reason):
 |---|---|---|
 | `0x05` per-validator refinement vs `technical-design.md` §2.4 (global) | Doc divergence | D6; doc-sync `technical-design.md` §2.4 to per-validator |
 | New params (`outlier_threshold`, `min_windows_before_slash`) vs §2.2 `OracleParams` | Doc divergence | Doc-sync `technical-design.md` §2.2 to add both fields |
+| `SlashingKeeper.Slash` returns `error` only (verified v0.50.14), not `(math.Int, error)` per §2.3; `oracle_slash` carries `slash_fraction` not `slash_amount` (§2.7) | Doc divergence | Doc-sync `technical-design.md` §2.3 signature + §2.7 event attribute |
 | valoper → consAddr resolution for slashing | Wrong address fails or mis-slashes | Resolve via validator record consensus pubkey; unit-test the mapping; integration test asserts the correct validator is slashed |
 | Stake-weighted median with one feed / equal weights / ties | Edge-case correctness | Dedicated unit tests for single feed, equal weights, exact-half boundary |
 | Outlier band tripping legitimate feeds in volatile/illiquid pairs | False-positive slashing | Cross-sectional comparison (same window) + governance-tunable `outlier_threshold`; MAD documented as fallback (§10) |
