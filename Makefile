@@ -221,7 +221,10 @@ testnet-join-smoke:
 testnet-demo:
 	@./scripts/testnet/rwa-demo.sh
 
-.PHONY: testnet-genesis testnet-up testnet-down testnet-join-smoke testnet-demo
+testnet-integration-verify:
+	@./scripts/testnet/integration-verify.sh
+
+.PHONY: testnet-genesis testnet-up testnet-down testnet-join-smoke testnet-demo testnet-integration-verify
 
 ###################
 ###  Load test  ###
