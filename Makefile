@@ -44,6 +44,31 @@ bench:
 	@echo Running unit tests with benchmarking...
 	@go test -mod=readonly -v -timeout 30m -bench=. ./...
 
+###################
+###  Simulation ###
+###################
+
+SIM_NUM_BLOCKS ?= 50
+SIM_BLOCK_SIZE ?= 50
+SIM_SEED ?= 42
+
+test-sim-nondeterminism:
+	@echo "Running non-determinism simulation..."
+	@go test -mod=readonly ./app -run TestAppStateDeterminism -Enabled=true \
+		-NumBlocks=$(SIM_NUM_BLOCKS) -BlockSize=$(SIM_BLOCK_SIZE) -Commit=true -Period=1 -v -timeout 30m
+
+test-sim-fullapp:
+	@echo "Running full-app simulation..."
+	@go test -mod=readonly ./app -run TestFullAppSimulation -Enabled=true \
+		-NumBlocks=$(SIM_NUM_BLOCKS) -BlockSize=$(SIM_BLOCK_SIZE) -Commit=true -Seed=$(SIM_SEED) -Period=1 -v -timeout 30m
+
+test-sim-import-export:
+	@echo "Running import/export simulation..."
+	@go test -mod=readonly ./app -run TestAppImportExport -Enabled=true \
+		-NumBlocks=$(SIM_NUM_BLOCKS) -BlockSize=$(SIM_BLOCK_SIZE) -Commit=true -Seed=$(SIM_SEED) -Period=1 -v -timeout 30m
+
+.PHONY: test-sim-nondeterminism test-sim-fullapp test-sim-import-export
+
 test: govet test-race
 
 .PHONY: test test-unit test-race test-cover bench
@@ -171,6 +196,22 @@ devnet-smoke:
 	@./scripts/devnet/smoke.sh --bootstrap
 
 .PHONY: devnet-docker-build localnet-genesis localnet-up localnet-down localnet-reset devnet-smoke
+
+###################
+###  Load test  ###
+###################
+
+LOADTEST_ENDPOINT ?= ws://localhost:26657/websocket
+LOADTEST_DURATION ?= 60
+LOADTEST_RATE ?= 200
+LOADTEST_CONNS ?= 4
+
+load-test:
+	@echo "Running tm-load-test against $(LOADTEST_ENDPOINT) (devnet must be up)..."
+	@tm-load-test -c $(LOADTEST_CONNS) -T $(LOADTEST_DURATION) -r $(LOADTEST_RATE) \
+		--broadcast-tx-method sync --endpoints $(LOADTEST_ENDPOINT)
+
+.PHONY: load-test
 
 ###################
 ###  Genesis    ###

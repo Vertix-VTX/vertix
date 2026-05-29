@@ -48,6 +48,10 @@ func (k Keeper) EndBlocker(ctx context.Context) error {
 		k.Logger().Error("fees: failed to burn coins", "err", err)
 		return nil
 	}
+	if err := k.AddCumulativeBurned(ctx, burnAmt); err != nil {
+		k.Logger().Error("fees: failed to record cumulative burn", "err", err)
+		return nil
+	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	distributed := balance.Amount.Sub(burnAmt)

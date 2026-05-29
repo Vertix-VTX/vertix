@@ -1,0 +1,40 @@
+# Vertix Phase 7 load-test reference configuration.
+#
+# This file documents the default parameters used by `make load-test` (see Makefile
+# LOADTEST_* variables). tm-load-test does not read this TOML directly; pass the
+# equivalent flags via the Makefile target or copy values to your CLI invocation.
+#
+# Target: Phase 6 Docker devnet — vertix-val1 RPC on the host (see docs/devnet.md).
+
+[run]
+# WebSocket RPC endpoint (vertix-val1, host-mapped from docker compose)
+endpoint = "ws://localhost:26657/websocket"
+
+# Parallel client connections per tm-load-test process
+connections = 4
+
+# Target transaction submission rate (tx/s) across all connections
+rate = 200
+
+# Test duration (seconds)
+duration = 60
+
+# Payload size per transaction (bytes); tm-load-test -s
+tx_size = 250
+
+# CometBFT broadcast mode: sync waits for CheckTx; async/fire-and-forget is higher throughput
+broadcast_tx_method = "sync"
+
+# Optional: write aggregate stats CSV (tm-load-test --stats-output)
+# stats_output = "infra/loadtest/results/stats.csv"
+
+[topology]
+chain_id = "vertix-devnet-1"
+validators = 3
+# Load is directed at val1 only; val2/val3 participate in consensus but are not separate RPC targets in the default harness.
+
+[notes]
+# tm-load-test ships with a kvstore ABCI client. Vertix runs a Cosmos SDK app, so the
+# default client does not produce valid Vertix transactions. Phase 7 records an RPC-level
+# baseline where applicable and documents this limitation; a custom loadtest client or
+# vertixd-driven tx flood script is required for module-realistic throughput (Phase 9).

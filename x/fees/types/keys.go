@@ -15,3 +15,11 @@ const (
 
 // KeyParams is the store key under which FeesParams is persisted.
 var KeyParams = []byte{0x01}
+
+var (
+	// KeyGenesisSupply stores the uvtx total supply snapshotted at InitGenesis.
+	KeyGenesisSupply = []byte{0x02}
+	// KeyCumulativeBurned stores the lifetime uvtx burned since the current
+	// genesis baseline (re-baselined on export/import).
+	KeyCumulativeBurned = []byte{0x03}
+)

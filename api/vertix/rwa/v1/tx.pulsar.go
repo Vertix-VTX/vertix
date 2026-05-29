@@ -7826,6 +7826,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// MsgRegisterAsset registers a new RWA asset.
 type MsgRegisterAsset struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -7901,6 +7902,7 @@ func (x *MsgRegisterAsset) GetBond() string {
 	return ""
 }
 
+// MsgRegisterAssetResponse is the response for MsgRegisterAsset.
 type MsgRegisterAssetResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -7927,6 +7929,7 @@ func (*MsgRegisterAssetResponse) Descriptor() ([]byte, []int) {
 	return file_vertix_rwa_v1_tx_proto_rawDescGZIP(), []int{1}
 }
 
+// MsgAttestAsset attests an asset with oracle price and bond lock.
 type MsgAttestAsset struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -7970,6 +7973,7 @@ func (x *MsgAttestAsset) GetAssetId() string {
 	return ""
 }
 
+// MsgAttestAssetResponse is the response for MsgAttestAsset.
 type MsgAttestAssetResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -7996,6 +8000,7 @@ func (*MsgAttestAssetResponse) Descriptor() ([]byte, []int) {
 	return file_vertix_rwa_v1_tx_proto_rawDescGZIP(), []int{3}
 }
 
+// MsgMintRWA mints factory-denom tokens for an active asset.
 type MsgMintRWA struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8047,6 +8052,7 @@ func (x *MsgMintRWA) GetNotional() string {
 	return ""
 }
 
+// MsgMintRWAResponse is the response for MsgMintRWA.
 type MsgMintRWAResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8073,6 +8079,7 @@ func (*MsgMintRWAResponse) Descriptor() ([]byte, []int) {
 	return file_vertix_rwa_v1_tx_proto_rawDescGZIP(), []int{5}
 }
 
+// MsgTransferRWA transfers factory-denom tokens between accounts.
 type MsgTransferRWA struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8132,6 +8139,7 @@ func (x *MsgTransferRWA) GetAmount() string {
 	return ""
 }
 
+// MsgTransferRWAResponse is the response for MsgTransferRWA.
 type MsgTransferRWAResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8158,6 +8166,7 @@ func (*MsgTransferRWAResponse) Descriptor() ([]byte, []int) {
 	return file_vertix_rwa_v1_tx_proto_rawDescGZIP(), []int{7}
 }
 
+// MsgSettleRWA settles an active asset.
 type MsgSettleRWA struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8201,6 +8210,7 @@ func (x *MsgSettleRWA) GetAssetId() string {
 	return ""
 }
 
+// MsgSettleRWAResponse is the response for MsgSettleRWA.
 type MsgSettleRWAResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8227,6 +8237,7 @@ func (*MsgSettleRWAResponse) Descriptor() ([]byte, []int) {
 	return file_vertix_rwa_v1_tx_proto_rawDescGZIP(), []int{9}
 }
 
+// MsgUpdateRestrictions updates transfer restrictions for an asset.
 type MsgUpdateRestrictions struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8310,6 +8321,7 @@ func (x *MsgUpdateRestrictions) GetDelDeny() []string {
 	return nil
 }
 
+// MsgUpdateRestrictionsResponse is the response for MsgUpdateRestrictions.
 type MsgUpdateRestrictionsResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8336,6 +8348,7 @@ func (*MsgUpdateRestrictionsResponse) Descriptor() ([]byte, []int) {
 	return file_vertix_rwa_v1_tx_proto_rawDescGZIP(), []int{11}
 }
 
+// MsgSlashBond slashes issuer bond via governance.
 type MsgSlashBond struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8387,6 +8400,7 @@ func (x *MsgSlashBond) GetReason() string {
 	return ""
 }
 
+// MsgSlashBondResponse is the response for MsgSlashBond.
 type MsgSlashBondResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8413,6 +8427,7 @@ func (*MsgSlashBondResponse) Descriptor() ([]byte, []int) {
 	return file_vertix_rwa_v1_tx_proto_rawDescGZIP(), []int{13}
 }
 
+// MsgUpdateParams updates module parameters via governance.
 type MsgUpdateParams struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -8456,6 +8471,7 @@ func (x *MsgUpdateParams) GetParams() *RWAParams {
 	return nil
 }
 
+// MsgUpdateParamsResponse is the response for MsgUpdateParams.
 type MsgUpdateParamsResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -148,6 +148,18 @@ These are repeated from [`docs/architecture.md`](./docs/architecture.md) §9 bec
 4. **Fee determinism.** `EndBlock` fee split is fully on-chain; off-chain code never influences burn/distribute.
 5. **Standard SDK modules unmodified.** Only custom modules (`x/oracle`, `x/rwa`, `x/fees`) carry Vertix-specific logic.
 
+**Crisis invariant routes (Phase 7+).** Five permanent `x/crisis` checks — keep them passing under simulation and in production; any change that breaks one is rejected by default:
+
+| Route | Statement (summary) |
+|---|---|
+| `oracle/prices` | Stored aggregated prices are accept-listed and strictly positive |
+| `fees/reconcile` | `genesisSupply − supply(uvtx) == cumulativeBurned` (⇒ 21M cap) |
+| `fees/module-balance` | `x/fees` module account holds zero `uvtx` at block boundary |
+| `rwa/bonds` | Module bond escrow ≥ required bonds; every `ACTIVE` asset is bonded |
+| `rwa/denoms` | Pre-mint assets have zero factory-denom supply |
+
+Details: [`docs/technical-design.md`](./docs/technical-design.md) §§2.8, 3.8, 4.6; [`docs/full-design-spec.md`](./docs/full-design-spec.md) Phase 7.
+
 A change that contradicts any of these is rejected by default.
 
 ---

@@ -18,9 +18,13 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type QueryClient interface {
+	// Asset returns one asset record by ID.
 	Asset(ctx context.Context, in *QueryAssetRequest, opts ...grpc.CallOption) (*QueryAssetResponse, error)
+	// AssetsByIssuer lists assets registered by an issuer.
 	AssetsByIssuer(ctx context.Context, in *QueryAssetsByIssuerRequest, opts ...grpc.CallOption) (*QueryAssetsByIssuerResponse, error)
+	// Restrictions returns allow/deny configuration for an asset.
 	Restrictions(ctx context.Context, in *QueryRestrictionsRequest, opts ...grpc.CallOption) (*QueryRestrictionsResponse, error)
+	// Params returns the current module parameters.
 	Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error)
 }
 
@@ -72,9 +76,13 @@ func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts .
 // All implementations must embed UnimplementedQueryServer
 // for forward compatibility
 type QueryServer interface {
+	// Asset returns one asset record by ID.
 	Asset(context.Context, *QueryAssetRequest) (*QueryAssetResponse, error)
+	// AssetsByIssuer lists assets registered by an issuer.
 	AssetsByIssuer(context.Context, *QueryAssetsByIssuerRequest) (*QueryAssetsByIssuerResponse, error)
+	// Restrictions returns allow/deny configuration for an asset.
 	Restrictions(context.Context, *QueryRestrictionsRequest) (*QueryRestrictionsResponse, error)
+	// Params returns the current module parameters.
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
 	mustEmbedUnimplementedQueryServer()
 }

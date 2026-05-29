@@ -267,13 +267,13 @@ Each section uses the design-level template: **Goal · Scope · Key design decis
 - **Goal:** An audit-ready codebase with invariants, simulations, gas/load analysis, and validator security guidance.
 - **Scope.** *In:* `x/crisis` invariants, simulation/fuzz tests, static analysis, gas-metering audit, adversarial testing, load testing, `tmkms`/sentry docs. *Out:* third-party audit (Phase 9), external exposure (Phase 8).
 - **Key design decisions.**
-  - Register invariants: oracle (prices exist for configured pairs), RWA (every `ACTIVE` asset has a bonded issuer), fees (module balances reconcile with burn+distribute totals).
+  - Register crisis invariants (five permanent routes): `oracle/prices` (stored aggregated prices are accept-listed and strictly positive — existence/freshness is monitoring, not a halt condition), `fees/reconcile` + `fees/module-balance`, `rwa/bonds`, `rwa/denoms`.
   - No unbounded loops in oracle aggregation or RWA registry enumeration.
 - **Deliverables.** Registered invariants; module simulations; `cosmos-sdk-codeql` in CI; gas audit notes; adversarial test cases (oracle manipulation, bond bypass); `tm-load-test` TPS baseline; `docs/tmkms.md`, `docs/validator-setup.md`.
 - **Dependencies.** *Depends on:* Phase 6. *Enables:* Phase 8.
 - **Cross-phase contracts.**
-  - **Invariant contract:** the three module invariants become permanent crisis-module checks all later phases must keep passing.
-- **Acceptance gate.** No invariant violations under simulation; CodeQL findings resolved/documented; TPS baseline documented; validator security guide complete.
+  - **Invariant contract:** the five crisis routes (`oracle/prices`, `fees/reconcile`, `fees/module-balance`, `rwa/bonds`, `rwa/denoms`) become permanent checks all later phases must keep passing.
+- **Acceptance gate.** No invariant violations under simulation; CodeQL findings resolved/documented; TPS baseline documented in [`docs/load-test.md`](./load-test.md); validator security guide complete.
 
 ## Phase 8 — Public Testnet v1
 
@@ -349,7 +349,7 @@ When this spec disagrees with another doc on **phase order or cross-phase contra
   force-settles the asset and routes the bond to the community pool. See
   `specs/2026-05-29-phase-3-rwa-module-design.md` D7.
 - **Provider set + weighting** (Phase 4): **Resolved** — CoinGecko + Binance + a Static provider (Static bootstraps VTX:USD until listing); disagreement handled by a configurable cross-source median with strict defaults (min_providers=2, max_deviation=0.10, max_quote_age), skipping under-covered pairs. See [specs/2026-05-29-phase-4-feeder-sidecar-design.md](./specs/2026-05-29-phase-4-feeder-sidecar-design.md) §2 (D2/D3).
-- **TPS target** (Phases 7/9): the concrete throughput/latency bar load tests must clear.
+- **TPS target** (Phases 7/9): **resolved for Phase 7 = baseline-only** — measured throughput/latency recorded in [`docs/load-test.md`](./load-test.md); no pass/fail threshold. The concrete throughput/latency **bar** load tests must clear remains a **Phase 9** item.
 - **Day-1 IBC channel set** (Phase 10): final confirmation beyond Cosmos Hub.
 
 Each is resolved when its phase is brainstormed; resolutions update the relevant phase section and `technical-design.md`.

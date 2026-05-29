@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math/rand"
 	"time"
 
 	corestore "cosmossdk.io/core/store"
@@ -12,6 +13,7 @@ import (
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/vertix-network/vertix/x/oracle/types"
 )
@@ -35,6 +37,18 @@ func NewKeeper(
 }
 
 func (k Keeper) GetAuthority() string { return k.authority }
+
+// BondedValidator returns a random bonded validator for simulation operations.
+func (k Keeper) BondedValidator(ctx context.Context, r *rand.Rand) (stakingtypes.Validator, bool) {
+	if k.stakingKeeper == nil {
+		return stakingtypes.Validator{}, false
+	}
+	vals, err := k.stakingKeeper.GetBondedValidatorsByPower(ctx)
+	if err != nil || len(vals) == 0 {
+		return stakingtypes.Validator{}, false
+	}
+	return vals[r.Intn(len(vals))], true
+}
 
 func (k Keeper) SetAggregatedPrice(ctx context.Context, ap types.AggregatedPrice) error {
 	store := k.storeService.OpenKVStore(ctx)

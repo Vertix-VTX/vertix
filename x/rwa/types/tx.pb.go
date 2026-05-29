@@ -31,6 +31,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// MsgRegisterAsset registers a new RWA asset.
 type MsgRegisterAsset struct {
 	Issuer      string `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	AssetId     string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
@@ -115,6 +116,7 @@ func (m *MsgRegisterAsset) GetBond() string {
 	return ""
 }
 
+// MsgRegisterAssetResponse is the response for MsgRegisterAsset.
 type MsgRegisterAssetResponse struct {
 }
 
@@ -151,6 +153,7 @@ func (m *MsgRegisterAssetResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgRegisterAssetResponse proto.InternalMessageInfo
 
+// MsgAttestAsset attests an asset with oracle price and bond lock.
 type MsgAttestAsset struct {
 	Issuer  string `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	AssetId string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
@@ -203,6 +206,7 @@ func (m *MsgAttestAsset) GetAssetId() string {
 	return ""
 }
 
+// MsgAttestAssetResponse is the response for MsgAttestAsset.
 type MsgAttestAssetResponse struct {
 }
 
@@ -239,6 +243,7 @@ func (m *MsgAttestAssetResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgAttestAssetResponse proto.InternalMessageInfo
 
+// MsgMintRWA mints factory-denom tokens for an active asset.
 type MsgMintRWA struct {
 	Issuer   string `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	AssetId  string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
@@ -299,6 +304,7 @@ func (m *MsgMintRWA) GetNotional() string {
 	return ""
 }
 
+// MsgMintRWAResponse is the response for MsgMintRWA.
 type MsgMintRWAResponse struct {
 }
 
@@ -335,6 +341,7 @@ func (m *MsgMintRWAResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgMintRWAResponse proto.InternalMessageInfo
 
+// MsgTransferRWA transfers factory-denom tokens between accounts.
 type MsgTransferRWA struct {
 	Sender    string `protobuf:"bytes,1,opt,name=sender,proto3" json:"sender,omitempty"`
 	Recipient string `protobuf:"bytes,2,opt,name=recipient,proto3" json:"recipient,omitempty"`
@@ -403,6 +410,7 @@ func (m *MsgTransferRWA) GetAmount() string {
 	return ""
 }
 
+// MsgTransferRWAResponse is the response for MsgTransferRWA.
 type MsgTransferRWAResponse struct {
 }
 
@@ -439,6 +447,7 @@ func (m *MsgTransferRWAResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgTransferRWAResponse proto.InternalMessageInfo
 
+// MsgSettleRWA settles an active asset.
 type MsgSettleRWA struct {
 	Issuer  string `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	AssetId string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
@@ -491,6 +500,7 @@ func (m *MsgSettleRWA) GetAssetId() string {
 	return ""
 }
 
+// MsgSettleRWAResponse is the response for MsgSettleRWA.
 type MsgSettleRWAResponse struct {
 }
 
@@ -527,6 +537,7 @@ func (m *MsgSettleRWAResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSettleRWAResponse proto.InternalMessageInfo
 
+// MsgUpdateRestrictions updates transfer restrictions for an asset.
 type MsgUpdateRestrictions struct {
 	Issuer   string   `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	AssetId  string   `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
@@ -619,6 +630,7 @@ func (m *MsgUpdateRestrictions) GetDelDeny() []string {
 	return nil
 }
 
+// MsgUpdateRestrictionsResponse is the response for MsgUpdateRestrictions.
 type MsgUpdateRestrictionsResponse struct {
 }
 
@@ -655,6 +667,7 @@ func (m *MsgUpdateRestrictionsResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgUpdateRestrictionsResponse proto.InternalMessageInfo
 
+// MsgSlashBond slashes issuer bond via governance.
 type MsgSlashBond struct {
 	Authority string `protobuf:"bytes,1,opt,name=authority,proto3" json:"authority,omitempty"`
 	AssetId   string `protobuf:"bytes,2,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
@@ -715,6 +728,7 @@ func (m *MsgSlashBond) GetReason() string {
 	return ""
 }
 
+// MsgSlashBondResponse is the response for MsgSlashBond.
 type MsgSlashBondResponse struct {
 }
 
@@ -751,6 +765,7 @@ func (m *MsgSlashBondResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSlashBondResponse proto.InternalMessageInfo
 
+// MsgUpdateParams updates module parameters via governance.
 type MsgUpdateParams struct {
 	Authority string    `protobuf:"bytes,1,opt,name=authority,proto3" json:"authority,omitempty"`
 	Params    RWAParams `protobuf:"bytes,2,opt,name=params,proto3" json:"params"`
@@ -803,6 +818,7 @@ func (m *MsgUpdateParams) GetParams() RWAParams {
 	return RWAParams{}
 }
 
+// MsgUpdateParamsResponse is the response for MsgUpdateParams.
 type MsgUpdateParamsResponse struct {
 }
 
@@ -935,13 +951,21 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MsgClient interface {
+	// RegisterAsset registers a new RWA asset in DRAFT status.
 	RegisterAsset(ctx context.Context, in *MsgRegisterAsset, opts ...grpc.CallOption) (*MsgRegisterAssetResponse, error)
+	// AttestAsset locks the issuer bond and attests oracle price.
 	AttestAsset(ctx context.Context, in *MsgAttestAsset, opts ...grpc.CallOption) (*MsgAttestAssetResponse, error)
+	// MintRWA mints factory-denom tokens against attested notional.
 	MintRWA(ctx context.Context, in *MsgMintRWA, opts ...grpc.CallOption) (*MsgMintRWAResponse, error)
+	// TransferRWA transfers factory-denom tokens subject to restrictions.
 	TransferRWA(ctx context.Context, in *MsgTransferRWA, opts ...grpc.CallOption) (*MsgTransferRWAResponse, error)
+	// SettleRWA settles an active asset and unwinds positions.
 	SettleRWA(ctx context.Context, in *MsgSettleRWA, opts ...grpc.CallOption) (*MsgSettleRWAResponse, error)
+	// UpdateRestrictions updates allow/deny lists for an asset.
 	UpdateRestrictions(ctx context.Context, in *MsgUpdateRestrictions, opts ...grpc.CallOption) (*MsgUpdateRestrictionsResponse, error)
+	// SlashBond slashes issuer bond via governance authority.
 	SlashBond(ctx context.Context, in *MsgSlashBond, opts ...grpc.CallOption) (*MsgSlashBondResponse, error)
+	// UpdateParams updates module parameters via governance authority.
 	UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error)
 }
 
@@ -1027,13 +1051,21 @@ func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts 
 
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
+	// RegisterAsset registers a new RWA asset in DRAFT status.
 	RegisterAsset(context.Context, *MsgRegisterAsset) (*MsgRegisterAssetResponse, error)
+	// AttestAsset locks the issuer bond and attests oracle price.
 	AttestAsset(context.Context, *MsgAttestAsset) (*MsgAttestAssetResponse, error)
+	// MintRWA mints factory-denom tokens against attested notional.
 	MintRWA(context.Context, *MsgMintRWA) (*MsgMintRWAResponse, error)
+	// TransferRWA transfers factory-denom tokens subject to restrictions.
 	TransferRWA(context.Context, *MsgTransferRWA) (*MsgTransferRWAResponse, error)
+	// SettleRWA settles an active asset and unwinds positions.
 	SettleRWA(context.Context, *MsgSettleRWA) (*MsgSettleRWAResponse, error)
+	// UpdateRestrictions updates allow/deny lists for an asset.
 	UpdateRestrictions(context.Context, *MsgUpdateRestrictions) (*MsgUpdateRestrictionsResponse, error)
+	// SlashBond slashes issuer bond via governance authority.
 	SlashBond(context.Context, *MsgSlashBond) (*MsgSlashBondResponse, error)
+	// UpdateParams updates module parameters via governance authority.
 	UpdateParams(context.Context, *MsgUpdateParams) (*MsgUpdateParamsResponse, error)
 }
 

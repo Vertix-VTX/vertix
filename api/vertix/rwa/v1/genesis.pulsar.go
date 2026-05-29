@@ -1328,6 +1328,7 @@ func (x *Restriction) GetIsDeny() bool {
 	return false
 }
 
+// GenesisState defines the RWA module genesis state.
 type GenesisState struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

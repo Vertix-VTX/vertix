@@ -1851,11 +1851,16 @@ const (
 type AssetStatus int32
 
 const (
+	// ASSET_STATUS_UNSPECIFIED is the zero value.
 	AssetStatus_ASSET_STATUS_UNSPECIFIED AssetStatus = 0
-	AssetStatus_ASSET_STATUS_DRAFT       AssetStatus = 1
-	AssetStatus_ASSET_STATUS_ATTESTED    AssetStatus = 2
-	AssetStatus_ASSET_STATUS_ACTIVE      AssetStatus = 3
-	AssetStatus_ASSET_STATUS_SETTLED     AssetStatus = 4
+	// ASSET_STATUS_DRAFT is registered but not yet attested.
+	AssetStatus_ASSET_STATUS_DRAFT AssetStatus = 1
+	// ASSET_STATUS_ATTESTED has a locked bond and oracle price attestation.
+	AssetStatus_ASSET_STATUS_ATTESTED AssetStatus = 2
+	// ASSET_STATUS_ACTIVE may mint and transfer factory denoms.
+	AssetStatus_ASSET_STATUS_ACTIVE AssetStatus = 3
+	// ASSET_STATUS_SETTLED has completed lifecycle settlement.
+	AssetStatus_ASSET_STATUS_SETTLED AssetStatus = 4
 )
 
 // Enum value maps for AssetStatus.

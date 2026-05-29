@@ -26,11 +26,12 @@ vertix/
 │       └── fees/v1/
 ├── testutil/                 🛠️  Shared test helpers (keeper fixtures, mocks)
 ├── e2e/                      🛠️  interchaintest IBC end-to-end suite (own go.mod)
-├── infra/                    🛠️  Local devnet, relayer, monitoring, explorer config
+├── infra/                    🛠️  Local devnet, relayer, monitoring, explorer, load-test config
 │   ├── devnet/
 │   ├── hermes/
 │   ├── explorer/
-│   └── monitoring/
+│   ├── monitoring/
+│   └── loadtest/                 Phase 7 — tm-load-test runner config
 ├── docs/                     🛠️  Project documentation (this folder)
 │   ├── full-design-spec.md   Program source of truth (phases 0–10)
 │   ├── specs/                Per-phase design specs (from brainstorms)
@@ -257,6 +258,9 @@ infra/
 ├── explorer/
 │   └── chains/
 │       └── vertix.json             🛠️  Ping.pub chain definition
+├── loadtest/                       🛠️  Phase 7 — tm-load-test config + runbook
+│   ├── loadtest.toml
+│   └── README.md
 └── monitoring/
     ├── prometheus.yml              🛠️  Scrape CometBFT + feeders + Hermes
     └── grafana/
@@ -308,10 +312,12 @@ docs/
 ├── tokenomics.md
 ├── devnet.md                    🛠️  Phase 6 Docker devnet runbook
 ├── relayer.md                   🛠️  Hermes / rly guide (+ devnet ↔ gaia section)
-├── tmkms.md                     (created by Phase 6 — security hardening)
-├── validator-setup.md           (created by Phase 6)
-├── validator-onboarding.md      (created by Phase 7)
-└── rwa-quickstart.md            (created by Phase 7)
+├── gas-audit.md                 🛠️  Phase 7 — hot-path iteration bounds
+├── load-test.md                 🛠️  Phase 7 — tm-load-test TPS/latency baseline
+├── tmkms.md                     🛠️  Phase 7 — TMKMS + sentry topology
+├── validator-setup.md           🛠️  Phase 7 — validator key separation
+├── validator-onboarding.md      (created by Phase 8)
+└── rwa-quickstart.md            (created by Phase 8)
 ```
 
 ---

@@ -229,6 +229,15 @@ Note: oracle slashing is intentionally lighter than double-sign (5%) and **never
 
 `oracle_slash` carries `slash_fraction` (the applied rate), not an absolute amount, because `SlashingKeeper.Slash` returns `error` only in SDK v0.50 (Phase 1 spec §4).
 
+### 2.8 Invariants (registered with `x/crisis`)
+
+Route `oracle/prices` — **structural integrity** of stored aggregated prices (Phase 7; not an existence check):
+
+- Every stored `AggregatedPrice` (`0x02` prefix) has `pair ∈ Params.AcceptList`.
+- Every stored price parses to a **strictly positive** `math.LegacyDec`.
+
+Bound: O(stored prices) ≤ O(`AcceptList`). **Existence** of a price for every configured pair and **freshness** are liveness/monitoring concerns (Phase 8 dashboards), not crisis halt conditions — a newly started chain has no aggregated prices until the first `VoteWindow` closes.
+
 ---
 
 ## 3. `x/rwa` — Module Design
@@ -363,16 +372,15 @@ original "ante decorator" design — Phase 3 spec D5.)
 
 ### 3.8 Invariants (registered with `x/crisis`)
 
-- Every `ACTIVE` asset has a non-zero bond locked in the module account.
-- Sum of all bonds in the module account ≥ Σ `MinIssuerBond` for active assets.
-- For every `rwa/{id}` denom, the issuing `AssetRecord` exists and is `ACTIVE` or `SETTLED`.
+- `rwa/bonds`: every `ACTIVE` asset has a non-zero bond locked in the module account; sum of bonds in the module account ≥ Σ `MinIssuerBond` for active assets.
+- `rwa/denoms`: for every `rwa/{id}` denom, the issuing `AssetRecord` exists and is `ACTIVE` or `SETTLED`; pre-mint assets have zero factory-denom supply.
 
 ---
 
 ## 4. `x/fees` — Module Design
 
 ### 4.1 Responsibilities
-Coordination only — no custom state beyond `FeesParams`. Sweeps fee collector at `EndBlock`, splits, dispatches.
+Coordination and burn accounting — `FeesParams` plus two internal KV keys (Phase 7; not in genesis/proto). Sweeps fee collector at `EndBlock`, splits, dispatches.
 
 ### 4.2 Protobuf Surface
 
@@ -383,6 +391,15 @@ proto/vertix/fees/v1/
 ├── query.proto    GetParams
 └── genesis.proto  GenesisState
 ```
+
+**Internal KV (burn accounting, Phase 7):**
+
+| Key | Prefix | Value | Touchpoints |
+|---|---|---|---|
+| `KeyGenesisSupply` | `0x02` | `uvtx` total supply (`math.Int`) | Snapshotted in `InitGenesis` via `bankKeeper.GetSupply("uvtx")` (requires `bank` `InitGenesis` before `x/fees`) |
+| `KeyCumulativeBurned` | `0x03` | lifetime `uvtx` burned since current baseline (`math.Int`) | Set to zero in `InitGenesis`; incremented in `EndBlocker` by each `burn` amount |
+
+On chain export/import these values re-snapshot / reset so reconciliation holds from the new baseline without proto changes.
 
 ### 4.3 EndBlock Algorithm
 
@@ -399,6 +416,7 @@ EndBlock(ctx):
     if burn == 0: return                                  # dust guard
     bankKeeper.SendCoinsFromModuleToModule(FeeCollector → fees, burn)
     bankKeeper.BurnCoins(fees, burn)
+    cumulativeBurned += burn                              # KeyCumulativeBurned (0x03)
     emit EventFeeBurned(amount=burn)
     emit EventFeeDistributed(amount = uvtx − burn)        # left for native x/distribution BeginBlock
 # The DistributionRatio (remainder) is distributed to stakers by the
@@ -418,10 +436,10 @@ EndBlock(ctx):
 | `fee_burned` | `amount` (sdk.Coins) |
 | `fee_distributed` | `amount` (sdk.Coins) |
 
-### 4.6 Invariants
+### 4.6 Invariants (registered with `x/crisis`)
 
-- Total `uvtx` burned (via `EventFeeBurned`) is monotonic and ≤ genesis supply − current supply.
-- The `x/fees` module account balance is zero at every block boundary (it holds coins only transiently within `EndBlock` between the move and the burn).
+- `fees/reconcile`: `KeyGenesisSupply − bankKeeper.GetSupply("uvtx") == KeyCumulativeBurned`. Because the only sink for `uvtx` is the `x/fees` burn (no `x/mint`; `rwa/{id}` factory denoms are separate denoms), this enforces the 21M hard-cap / no-inflation invariant. The cumulative counter only increments in `EndBlocker`.
+- `fees/module-balance`: the `x/fees` module account holds **zero** `uvtx` at the block boundary (coins are transient within `EndBlock`: collector → fees module → burn).
 
 `x/fees` uses a burn-only sweep (spec D1): the `DistributionRatio` portion stays in the fee collector and is distributed to stakers by the native `x/distribution` `BeginBlock`. Set `community_tax = 0` in genesis so the full `DistributionRatio` reaches stakers (Phase 0 owns that genesis value).
 

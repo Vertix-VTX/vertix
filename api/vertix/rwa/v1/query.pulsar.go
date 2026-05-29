@@ -3825,6 +3825,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// QueryAssetRequest is the request type for Query/Asset.
 type QueryAssetRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -3860,6 +3861,7 @@ func (x *QueryAssetRequest) GetAssetId() string {
 	return ""
 }
 
+// QueryAssetResponse is the response type for Query/Asset.
 type QueryAssetResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -3895,6 +3897,7 @@ func (x *QueryAssetResponse) GetAsset() *AssetRecord {
 	return nil
 }
 
+// QueryAssetsByIssuerRequest is the request type for Query/AssetsByIssuer.
 type QueryAssetsByIssuerRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -3938,6 +3941,7 @@ func (x *QueryAssetsByIssuerRequest) GetPagination() *v1beta1.PageRequest {
 	return nil
 }
 
+// QueryAssetsByIssuerResponse is the response type for Query/AssetsByIssuer.
 type QueryAssetsByIssuerResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -3981,6 +3985,7 @@ func (x *QueryAssetsByIssuerResponse) GetPagination() *v1beta1.PageResponse {
 	return nil
 }
 
+// QueryRestrictionsRequest is the request type for Query/Restrictions.
 type QueryRestrictionsRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4016,6 +4021,7 @@ func (x *QueryRestrictionsRequest) GetAssetId() string {
 	return ""
 }
 
+// QueryRestrictionsResponse is the response type for Query/Restrictions.
 type QueryRestrictionsResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4067,6 +4073,7 @@ func (x *QueryRestrictionsResponse) GetDenylist() []string {
 	return nil
 }
 
+// QueryParamsRequest is the request type for Query/Params.
 type QueryParamsRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4093,6 +4100,7 @@ func (*QueryParamsRequest) Descriptor() ([]byte, []int) {
 	return file_vertix_rwa_v1_query_proto_rawDescGZIP(), []int{6}
 }
 
+// QueryParamsResponse is the response type for Query/Params.
 type QueryParamsResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -31,6 +31,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// QueryAssetRequest is the request type for Query/Asset.
 type QueryAssetRequest struct {
 	AssetId string `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
 }
@@ -75,6 +76,7 @@ func (m *QueryAssetRequest) GetAssetId() string {
 	return ""
 }
 
+// QueryAssetResponse is the response type for Query/Asset.
 type QueryAssetResponse struct {
 	Asset AssetRecord `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset"`
 }
@@ -119,6 +121,7 @@ func (m *QueryAssetResponse) GetAsset() AssetRecord {
 	return AssetRecord{}
 }
 
+// QueryAssetsByIssuerRequest is the request type for Query/AssetsByIssuer.
 type QueryAssetsByIssuerRequest struct {
 	Issuer     string             `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	Pagination *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
@@ -171,6 +174,7 @@ func (m *QueryAssetsByIssuerRequest) GetPagination() *query.PageRequest {
 	return nil
 }
 
+// QueryAssetsByIssuerResponse is the response type for Query/AssetsByIssuer.
 type QueryAssetsByIssuerResponse struct {
 	Assets     []AssetRecord       `protobuf:"bytes,1,rep,name=assets,proto3" json:"assets"`
 	Pagination *query.PageResponse `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
@@ -223,6 +227,7 @@ func (m *QueryAssetsByIssuerResponse) GetPagination() *query.PageResponse {
 	return nil
 }
 
+// QueryRestrictionsRequest is the request type for Query/Restrictions.
 type QueryRestrictionsRequest struct {
 	AssetId string `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
 }
@@ -267,6 +272,7 @@ func (m *QueryRestrictionsRequest) GetAssetId() string {
 	return ""
 }
 
+// QueryRestrictionsResponse is the response type for Query/Restrictions.
 type QueryRestrictionsResponse struct {
 	AllowAll  bool     `protobuf:"varint,1,opt,name=allow_all,json=allowAll,proto3" json:"allow_all,omitempty"`
 	Allowlist []string `protobuf:"bytes,2,rep,name=allowlist,proto3" json:"allowlist,omitempty"`
@@ -327,6 +333,7 @@ func (m *QueryRestrictionsResponse) GetDenylist() []string {
 	return nil
 }
 
+// QueryParamsRequest is the request type for Query/Params.
 type QueryParamsRequest struct {
 }
 
@@ -363,6 +370,7 @@ func (m *QueryParamsRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_QueryParamsRequest proto.InternalMessageInfo
 
+// QueryParamsResponse is the response type for Query/Params.
 type QueryParamsResponse struct {
 	Params RWAParams `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
 }
@@ -477,9 +485,13 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type QueryClient interface {
+	// Asset returns one asset record by ID.
 	Asset(ctx context.Context, in *QueryAssetRequest, opts ...grpc.CallOption) (*QueryAssetResponse, error)
+	// AssetsByIssuer lists assets registered by an issuer.
 	AssetsByIssuer(ctx context.Context, in *QueryAssetsByIssuerRequest, opts ...grpc.CallOption) (*QueryAssetsByIssuerResponse, error)
+	// Restrictions returns allow/deny configuration for an asset.
 	Restrictions(ctx context.Context, in *QueryRestrictionsRequest, opts ...grpc.CallOption) (*QueryRestrictionsResponse, error)
+	// Params returns the current module parameters.
 	Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error)
 }
 
@@ -529,9 +541,13 @@ func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts .
 
 // QueryServer is the server API for Query service.
 type QueryServer interface {
+	// Asset returns one asset record by ID.
 	Asset(context.Context, *QueryAssetRequest) (*QueryAssetResponse, error)
+	// AssetsByIssuer lists assets registered by an issuer.
 	AssetsByIssuer(context.Context, *QueryAssetsByIssuerRequest) (*QueryAssetsByIssuerResponse, error)
+	// Restrictions returns allow/deny configuration for an asset.
 	Restrictions(context.Context, *QueryRestrictionsRequest) (*QueryRestrictionsResponse, error)
+	// Params returns the current module parameters.
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
 }
 

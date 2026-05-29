@@ -85,6 +85,7 @@ func (m *Restriction) GetIsDeny() bool {
 	return false
 }
 
+// GenesisState defines the RWA module genesis state.
 type GenesisState struct {
 	Params       RWAParams     `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
 	Assets       []AssetRecord `protobuf:"bytes,2,rep,name=assets,proto3" json:"assets"`

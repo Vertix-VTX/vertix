@@ -18,13 +18,21 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MsgClient interface {
+	// RegisterAsset registers a new RWA asset in DRAFT status.
 	RegisterAsset(ctx context.Context, in *MsgRegisterAsset, opts ...grpc.CallOption) (*MsgRegisterAssetResponse, error)
+	// AttestAsset locks the issuer bond and attests oracle price.
 	AttestAsset(ctx context.Context, in *MsgAttestAsset, opts ...grpc.CallOption) (*MsgAttestAssetResponse, error)
+	// MintRWA mints factory-denom tokens against attested notional.
 	MintRWA(ctx context.Context, in *MsgMintRWA, opts ...grpc.CallOption) (*MsgMintRWAResponse, error)
+	// TransferRWA transfers factory-denom tokens subject to restrictions.
 	TransferRWA(ctx context.Context, in *MsgTransferRWA, opts ...grpc.CallOption) (*MsgTransferRWAResponse, error)
+	// SettleRWA settles an active asset and unwinds positions.
 	SettleRWA(ctx context.Context, in *MsgSettleRWA, opts ...grpc.CallOption) (*MsgSettleRWAResponse, error)
+	// UpdateRestrictions updates allow/deny lists for an asset.
 	UpdateRestrictions(ctx context.Context, in *MsgUpdateRestrictions, opts ...grpc.CallOption) (*MsgUpdateRestrictionsResponse, error)
+	// SlashBond slashes issuer bond via governance authority.
 	SlashBond(ctx context.Context, in *MsgSlashBond, opts ...grpc.CallOption) (*MsgSlashBondResponse, error)
+	// UpdateParams updates module parameters via governance authority.
 	UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error)
 }
 
@@ -112,13 +120,21 @@ func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts 
 // All implementations must embed UnimplementedMsgServer
 // for forward compatibility
 type MsgServer interface {
+	// RegisterAsset registers a new RWA asset in DRAFT status.
 	RegisterAsset(context.Context, *MsgRegisterAsset) (*MsgRegisterAssetResponse, error)
+	// AttestAsset locks the issuer bond and attests oracle price.
 	AttestAsset(context.Context, *MsgAttestAsset) (*MsgAttestAssetResponse, error)
+	// MintRWA mints factory-denom tokens against attested notional.
 	MintRWA(context.Context, *MsgMintRWA) (*MsgMintRWAResponse, error)
+	// TransferRWA transfers factory-denom tokens subject to restrictions.
 	TransferRWA(context.Context, *MsgTransferRWA) (*MsgTransferRWAResponse, error)
+	// SettleRWA settles an active asset and unwinds positions.
 	SettleRWA(context.Context, *MsgSettleRWA) (*MsgSettleRWAResponse, error)
+	// UpdateRestrictions updates allow/deny lists for an asset.
 	UpdateRestrictions(context.Context, *MsgUpdateRestrictions) (*MsgUpdateRestrictionsResponse, error)
+	// SlashBond slashes issuer bond via governance authority.
 	SlashBond(context.Context, *MsgSlashBond) (*MsgSlashBondResponse, error)
+	// UpdateParams updates module parameters via governance authority.
 	UpdateParams(context.Context, *MsgUpdateParams) (*MsgUpdateParamsResponse, error)
 	mustEmbedUnimplementedMsgServer()
 }

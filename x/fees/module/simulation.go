@@ -1,59 +1,41 @@
 package fees
 
 import (
-	"math/rand"
+	"cosmossdk.io/math"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-	"github.com/cosmos/cosmos-sdk/x/simulation"
 
-	"github.com/vertix-network/vertix/testutil/sample"
 	feessimulation "github.com/vertix-network/vertix/x/fees/simulation"
 	"github.com/vertix-network/vertix/x/fees/types"
 )
 
-// avoid unused import issue
-var (
-	_ = feessimulation.FindAccount
-	_ = rand.Rand{}
-	_ = sample.AccAddress
-	_ = sdk.AccAddress{}
-	_ = simulation.MsgEntryKind
-)
-
-const (
-// this line is used by starport scaffolding # simapp/module/const
-)
-
 // GenerateGenesisState creates a randomized GenState of the module.
 func (AppModule) GenerateGenesisState(simState *module.SimulationState) {
-	accs := make([]string, len(simState.Accounts))
-	for i, acc := range simState.Accounts {
-		accs[i] = acc.Address.String()
-	}
+	r := simState.Rand
+	burn := math.LegacyNewDecWithPrec(int64(r.Intn(101)), 2)
+	dist := math.LegacyOneDec().Sub(burn)
 	feesGenesis := types.GenesisState{
-		Params: types.DefaultParams(),
-		// this line is used by starport scaffolding # simapp/module/genesisState
+		Params: types.FeesParams{
+			BurnRatio:         burn.String(),
+			DistributionRatio: dist.String(),
+		},
 	}
 	simState.GenState[types.ModuleName] = simState.Cdc.MustMarshalJSON(&feesGenesis)
 }
 
 // RegisterStoreDecoder registers a decoder.
-func (am AppModule) RegisterStoreDecoder(_ simtypes.StoreDecoderRegistry) {}
+func (am AppModule) RegisterStoreDecoder(sdr simtypes.StoreDecoderRegistry) {
+	sdr[types.StoreKey] = feessimulation.NewDecodeStore(am.cdc)
+}
 
-// WeightedOperations returns the all the gov module operations with their respective weights.
-func (am AppModule) WeightedOperations(_ module.SimulationState) []simtypes.WeightedOperation {
-	operations := make([]simtypes.WeightedOperation, 0)
-
-	// this line is used by starport scaffolding # simapp/module/operation
-
-	return operations
+// WeightedOperations returns the module operations with their weights.
+// Fees is EndBlock-only; no message operations are simulated.
+func (AppModule) WeightedOperations(_ module.SimulationState) []simtypes.WeightedOperation {
+	return []simtypes.WeightedOperation{}
 }
 
 // ProposalMsgs returns msgs used for governance proposals for simulations.
-func (am AppModule) ProposalMsgs(_ module.SimulationState) []simtypes.WeightedProposalMsg {
-	return []simtypes.WeightedProposalMsg{
-		// this line is used by starport scaffolding # simapp/module/OpMsg
-	}
+func (AppModule) ProposalMsgs(_ module.SimulationState) []simtypes.WeightedProposalMsg {
+	return []simtypes.WeightedProposalMsg{}
 }
