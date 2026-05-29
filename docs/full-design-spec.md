@@ -58,8 +58,8 @@ External APIs ─► vertix-feeder (per validator) ─► MsgSubmitFeed
                                                        ▼ IBC (ICS-20): VTX + rwa/* denoms
 ```
 
-→ Full system architecture, node layering, validator/sentry topology, and IBC diagrams: [`../architecture.md`](../architecture.md).
-→ Module internals (protobuf surface, keeper APIs, store layouts, slashing math): [`../technical-design.md`](../technical-design.md).
+→ Full system architecture, node layering, validator/sentry topology, and IBC diagrams: [`architecture.md`](./architecture.md).
+→ Module internals (protobuf surface, keeper APIs, store layouts, slashing math): [`technical-design.md`](./technical-design.md).
 
 ## 4. Tokenomics at a Glance
 
@@ -74,7 +74,7 @@ Allocation:  Team 22% · Foundation 20% · Ecosystem 18% · Investors 13%
 
 A **Validator Incentives Pool** funds staking rewards during bootstrap until fee revenue scales. Burns are permanent and monotonic; total supply only ever decreases after genesis.
 
-→ Full vesting schedules, pool depletion model, and value-accrual analysis: [`../tokenomics.md`](../tokenomics.md).
+→ Full vesting schedules, pool depletion model, and value-accrual analysis: [`tokenomics.md`](./tokenomics.md).
 
 ## 5. Architectural Invariants (bind every phase)
 
@@ -113,7 +113,7 @@ Full Design Spec (this doc)
 
 - A phase's **Acceptance Gate** must pass before the **next** phase's brainstorm begins.
 - Each phase's **Cross-phase contracts** are binding inputs to the phases that depend on it; downstream phase specs must honor them.
-- The **design-level** content here (decisions, contracts, gates) is stable. Actionable task checklists live in [`../roadmap.md`](../roadmap.md); module internals live in [`../technical-design.md`](../technical-design.md).
+- The **design-level** content here (decisions, contracts, gates) is stable. Actionable task checklists live in [`roadmap.md`](./roadmap.md); module internals live in [`technical-design.md`](./technical-design.md).
 
 ### 7.2 Canonical phase map
 
@@ -155,7 +155,7 @@ Each section uses the design-level template: **Goal · Scope · Key design decis
 - **Key design decisions.**
   - Chain identity: binary `vertixd`, Bech32 `vtx`, base denom `uvtx`, 6 decimals, devnet chain ID `vertix-devnet-1`.
   - `x/mint` removed; guarded by `TestNoMintModule` in `app/app_test.go`.
-  - Genesis defaults per [`../technical-design.md`](../technical-design.md) §1.2 (unbonding 21d, `max_validators` 125, `min_commission` 5%, `min_gas_prices` `0.025uvtx`, etc.).
+  - Genesis defaults per [`technical-design.md`](./technical-design.md) §1.2 (unbonding 21d, `max_validators` 125, `min_commission` 5%, `min_gas_prices` `0.025uvtx`, etc.).
 - **Deliverables.** `app/app.go` wiring; `cmd/vertixd`; `config.yml`; `Makefile` (`build`/`test`/`lint`/`proto-gen`/`ts-gen`); `golangci-lint` + `buf` config; GitHub Actions CI; pre-commit hooks.
 - **Dependencies.** *Depends on:* none. *Enables:* every later phase.
 - **Cross-phase contracts.**
@@ -320,11 +320,11 @@ Each section uses the design-level template: **Goal · Scope · Key design decis
 | Doc | View | Owns |
 |---|---|---|
 | **This spec** | Design / contract | Program invariants, canonical phase order, cross-phase contracts, acceptance gates |
-| [`../roadmap.md`](../roadmap.md) | Timeline / tasks | Month-by-month schedule and per-phase task checklists |
-| [`../architecture.md`](../architecture.md) | System shape | Components, boundaries, data flow, topology, security architecture |
-| [`../technical-design.md`](../technical-design.md) | Module internals | Protobuf surface, keeper APIs, store layouts, state machines, slashing math |
-| [`../tokenomics.md`](../tokenomics.md) | Supply | Allocation, vesting, pool depletion, value accrual |
-| [`../project-overview.md`](../project-overview.md) | Orientation | One-page introduction |
+| [`roadmap.md`](./roadmap.md) | Timeline / tasks | Month-by-month schedule and per-phase task checklists |
+| [`architecture.md`](./architecture.md) | System shape | Components, boundaries, data flow, topology, security architecture |
+| [`technical-design.md`](./technical-design.md) | Module internals | Protobuf surface, keeper APIs, store layouts, state machines, slashing math |
+| [`tokenomics.md`](./tokenomics.md) | Supply | Allocation, vesting, pool depletion, value accrual |
+| [`project-overview.md`](./project-overview.md) | Orientation | One-page introduction |
 
 When this spec disagrees with another doc on **phase order or cross-phase contracts**, this spec wins. When it disagrees on **module internals**, `technical-design.md` wins. When it disagrees on **supply**, `tokenomics.md` wins.
 

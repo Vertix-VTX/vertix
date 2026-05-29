@@ -2,7 +2,7 @@
 
 This document is the engineering reference for the Vertix custom modules and the `vertix-feeder` sidecar. It defines protobuf surface, keeper APIs, store layouts, state machines, ABCI hooks, slashing math, and security invariants.
 
-For higher-level context see [`architecture.md`](./architecture.md). For the approved chain-level spec see [`specs/2026-05-09-vertix-blockchain-design.md`](./specs/2026-05-09-vertix-blockchain-design.md).
+For higher-level context see [`architecture.md`](./architecture.md). For the approved program spec see [`full-design-spec.md`](./full-design-spec.md).
 
 ---
 

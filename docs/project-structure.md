@@ -32,7 +32,8 @@ vertix/
 │   ├── explorer/
 │   └── monitoring/
 ├── docs/                     🛠️  Project documentation (this folder)
-│   ├── specs/
+│   ├── full-design-spec.md   Program source of truth (phases 0–10)
+│   ├── specs/                Per-phase design specs (from brainstorms)
 │   ├── plans/
 │   ├── project-overview.md
 │   ├── architecture.md
@@ -270,8 +271,8 @@ make devnet             # bring up devnet keeping state
 
 ```
 docs/
-├── specs/
-│   └── 2026-05-09-vertix-blockchain-design.md   Approved blockchain spec
+├── full-design-spec.md          Approved program spec (phases 0–10)
+├── specs/                       Per-phase design specs (from brainstorms)
 ├── plans/
 │   ├── 2026-05-09-01-chain-foundation.md
 │   ├── 2026-05-09-02-oracle-module.md

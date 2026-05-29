@@ -374,7 +374,7 @@ chore: remove x/mint to enforce 21M hard cap
 | Breaking proto change | Migration note + changelog + spec update |
 | New script / Make target | Update `project-structure.md` Makefile table |
 
-The `docs/specs/` directory holds **approved** specs (immutable once dated). Iterations live in `docs/plans/`.
+The program spec lives at [`full-design-spec.md`](./full-design-spec.md). Per-phase specs from brainstorms go in `docs/specs/` (immutable once dated). Execution iterations live in `docs/plans/`.
 
 ---
 

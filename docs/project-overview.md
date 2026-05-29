@@ -131,7 +131,8 @@ Full milestone breakdown: [`roadmap.md`](./roadmap.md).
 | [`coding-standards.md`](./coding-standards.md) | All contributors | Go style, proto, testing, commits |
 | [`tokenomics.md`](./tokenomics.md) | Token holders, validators | Supply, vesting, value accrual |
 | [`roadmap.md`](./roadmap.md) | Stakeholders | 12-month plan to mainnet |
-| [`specs/`](./specs/) | Architects | Approved design specs |
+| [`full-design-spec.md`](./full-design-spec.md) | Architects | Approved full design spec (program source of truth) |
+| [`specs/`](./specs/) | Architects | Per-phase design specs (from brainstorms) |
 | [`plans/`](./plans/) | Agentic implementers | Step-by-step execution plans |
 
 ---
@@ -151,7 +152,7 @@ Full milestone breakdown: [`roadmap.md`](./roadmap.md).
 
 ## 9. Quick Links
 
-- **Approved spec:** [`specs/2026-05-09-vertix-blockchain-design.md`](./specs/2026-05-09-vertix-blockchain-design.md)
+- **Approved spec:** [`full-design-spec.md`](./full-design-spec.md)
 - **Cosmos SDK docs:** https://docs.cosmos.network/
 - **CometBFT docs:** https://docs.cometbft.com/
 - **ibc-go docs:** https://ibc.cosmos.network/

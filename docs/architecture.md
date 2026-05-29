@@ -361,4 +361,4 @@ These are non-negotiable properties of the system that any change must preserve:
 | Approach | Monolithic launch (oracle + RWA + fees together) | Higher coordination cost vs. complete vision at launch |
 | Smart contracts | Not at launch (CosmWasm post-mainnet) | Less programmability vs. smaller audit surface |
 
-Full rationale is in the approved spec: [`specs/2026-05-09-vertix-blockchain-design.md`](./specs/2026-05-09-vertix-blockchain-design.md) §5.
+Full rationale is in the approved spec: [`full-design-spec.md`](./full-design-spec.md) §6.

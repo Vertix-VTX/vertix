@@ -44,7 +44,7 @@ All design and process docs live in [`docs/`](./docs/). Always check these befor
 ### Source of Truth
 | Path | Purpose |
 |---|---|
-| [`docs/specs/2026-05-29-vertix-full-design-spec.md`](./docs/specs/2026-05-29-vertix-full-design-spec.md) | The **approved** full design spec (program source of truth: invariants, canonical phase order, cross-phase contracts, acceptance gates) |
+| [`docs/full-design-spec.md`](./docs/full-design-spec.md) | The **approved** full design spec (program source of truth: invariants, canonical phase order, cross-phase contracts, acceptance gates) |
 | [`docs/plans/`](./docs/plans/) | Step-by-step execution plans (one per phase) |
 
 ### Execution Plans (run in order; each builds on the previous)
@@ -107,7 +107,7 @@ For full details: [`docs/project-structure.md`](./docs/project-structure.md).
 1. **Identify the relevant doc(s)** from §2 and read them.
 2. If a [`docs/plans/`](./docs/plans/) plan covers the task, follow that plan task-by-task. Plans are designed to be agent-executable.
 3. If your change crosses module boundaries, re-read [`docs/architecture.md`](./docs/architecture.md) §3 and [`docs/technical-design.md`](./docs/technical-design.md) §7.
-4. Verify the change is consistent with the approved spec ([`docs/specs/2026-05-29-vertix-full-design-spec.md`](./docs/specs/2026-05-29-vertix-full-design-spec.md)).
+4. Verify the change is consistent with the approved spec ([`docs/full-design-spec.md`](./docs/full-design-spec.md)).
 
 ### 5.2 While You Code
 
@@ -199,7 +199,7 @@ cd e2e && go test ./... -timeout 30m -v
 
 ## 9. When in Doubt
 
-- **The spec wins.** If a doc disagrees with [`docs/specs/2026-05-29-vertix-full-design-spec.md`](./docs/specs/2026-05-29-vertix-full-design-spec.md), the spec is correct — flag the disagreement in your PR.
+- **The spec wins.** If a doc disagrees with [`docs/full-design-spec.md`](./docs/full-design-spec.md), the spec is correct — flag the disagreement in your PR.
 - **Standards beat preferences.** If your style differs from [`docs/coding-standards.md`](./docs/coding-standards.md), match the standards.
 - **Plans beat ad-hoc work.** If a plan exists for what you're doing, run it; don't reinvent the order.
 - **Ask the user before** changing pinned versions, removing tests, modifying standard SDK modules, or touching anything that affects supply.
