@@ -44,7 +44,9 @@ For higher-level context see [`architecture.md`](./architecture.md). For the app
 ### 1.3 Module Set
 
 **Wired (standard, unmodified):**
-`x/auth`, `x/bank`, `x/staking`, `x/gov`, `x/distribution`, `x/slashing`, `x/upgrade`, `x/params`, `x/crisis`, `x/feegrant`, `x/authz`, `x/capability`, `x/ibc`, `x/transfer`, `x/genutil`, `x/evidence`, `x/vesting`.
+`x/auth`, `x/bank`, `x/staking`, `x/gov`, `x/distribution`, `x/slashing`, `x/upgrade`, `x/params`, `x/crisis`, `x/feegrant`, `x/authz`, `x/capability`, `x/consensus`, `x/ibc`, `x/transfer`, `x/genutil`, `x/evidence`, `x/vesting`.
+
+**IBC stack (scaffolded):** includes ICA (ICS-27) and `29-fee`.
 
 **Custom:** `x/oracle`, `x/rwa`, `x/fees`.
 

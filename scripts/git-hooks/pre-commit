@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+staged_go=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$' || true)
+if [ -z "$staged_go" ]; then
+  exit 0
+fi
+
+echo "pre-commit: gofmt"
+unformatted=$(gofmt -l $staged_go || true)
+if [ -n "$unformatted" ]; then
+  echo "These files need gofmt:" >&2
+  echo "$unformatted" >&2
+  echo "Run: gofmt -w $unformatted" >&2
+  exit 1
+fi
+
+echo "pre-commit: goimports"
+if command -v goimports >/dev/null 2>&1; then
+  goimports -l -local github.com/vertix-network/vertix $staged_go
+fi
+
+echo "pre-commit: golangci-lint"
+if command -v golangci-lint >/dev/null 2>&1; then
+  golangci-lint run --new-from-rev=HEAD~1 ./... || golangci-lint run ./...
+fi

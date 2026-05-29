@@ -1,0 +1,64 @@
+version: 1
+validation: sovereign
+build:
+  main: cmd/vertixd
+accounts:
+  - name: alice
+    coins:
+      - 100000000000uvtx
+  - name: bob
+    coins:
+      - 50000000000uvtx
+client:
+  openapi:
+    path: docs/static/openapi.yml
+faucet:
+  name: bob
+  coins:
+    - 10000000uvtx
+validators:
+  - name: alice
+    bonded: 50000000000uvtx
+genesis:
+  chain_id: vertix-devnet-1
+  app_state:
+    staking:
+      params:
+        bond_denom: uvtx
+        unbonding_time: "1814400s"
+        max_validators: 125
+        min_commission_rate: "0.050000000000000000"
+    gov:
+      params:
+        min_deposit:
+          - denom: uvtx
+            amount: "10000000000"
+        voting_period: "432000s"
+        expedited_voting_period: "86400s"
+        quorum: "0.334000000000000000"
+        threshold: "0.500000000000000000"
+    distribution:
+      params:
+        community_tax: "0.020000000000000000"
+    slashing:
+      params:
+        signed_blocks_window: "100"
+        min_signed_per_window: "0.500000000000000000"
+        slash_fraction_double_sign: "0.050000000000000000"
+        slash_fraction_downtime: "0.010000000000000000"
+    crisis:
+      constant_fee:
+        denom: uvtx
+        amount: "1000000000"
+    bank:
+      denom_metadata:
+        - description: "The native staking token of Vertix."
+          denom_units:
+            - denom: uvtx
+              exponent: 0
+            - denom: vtx
+              exponent: 6
+          base: uvtx
+          display: vtx
+          name: Vertix
+          symbol: VTX
