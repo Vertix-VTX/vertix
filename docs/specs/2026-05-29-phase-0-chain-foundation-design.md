@@ -35,7 +35,8 @@ Produce a **bootable single-node `vertixd` chain** with the full standard Cosmos
 
 | # | Decision | Choice | Rationale |
 |---|---|---|---|
-| D1 | App construction | **Ignite scaffold → manual `app.go` wiring** (simapp-style) | Matches `technical-design.md` §7 literally; explicit Begin/EndBlock + InitGenesis ordering; auditability (Invariant 6); makes the `x/mint` absence trivially visible. |
+| D1 | App construction | **Ignite scaffold → keep depinject (`app_config.go`); trim the module set** | Revised after inspecting the real v28.11 scaffold: it is depinject-based, and the module ordering (`beginBlockers`/`endBlockers`/`genesisModuleOrder`) + `moduleAccPerms` are already explicit, reviewable string slices in `app_config.go`. A full manual `app.go` rewrite would be a large, compile-unverified change with no auditability gain. `x/mint` removal stays trivially visible and is guarded by `TestNoMintModule`. `technical-design.md` §7's literal `NewKeeper(...)` snippets become *illustrative*; the binding contract is the module set, ordering, and the consumer interfaces — all honored under depinject. |
+| D1a | Module trim | Remove `mint`, `nft`, `group`, `circuit`; **keep the IBC stack** (`ibc`, `transfer`, `ica`/27, `29-fee`) | `mint` is the hard-cap requirement; `nft`/`group`/`circuit` are scaffold extras absent from §1.3. The scaffold's IBC stack (incl. interchain-accounts and 29-fee middleware) is kept as a cohesive unit because Phase 5 (IBC enablement) owns it and removing the middleware from `app/ibc.go` is fragile churn. §1.3's "`ibc`, `transfer`" is read as "the standard IBC stack". *Flag for user veto.* |
 | D2 | Genesis scope | **Module param defaults (§1.2) + a few devnet dev accounts only** | Matches the spec's "bootable chain" scope; full allocation/vesting belongs to Phase 9. |
 | D3 | Canonical Go version | **Pin `go.mod` + CI to Go 1.22** | Aligns with SDK v0.50.x (built/tested on Go 1.21–1.22) and golangci-lint v1.57 (built with Go 1.22). Local Go 1.26 still builds via the `go` directive. |
 | D4 | Execution approach | **Approach A: Ignite scaffold + adapt** | Fastest bootable chain; inherits proto pipeline, `cmd/vertixd`, buf config, `.gitignore`; honors `project-structure.md`. |
@@ -80,19 +81,21 @@ This realizes the `✅ scaffold-generated` and the Phase-0 `🛠️ created by p
 
 ### 4.1 Module set
 
-**Wired (standard, unmodified):** `auth`, `bank`, `staking`, `gov`, `distribution`, `slashing`, `upgrade`, `params`, `crisis`, `feegrant`, `authz`, `capability`, `ibc`, `transfer`, `genutil`, `evidence`, `vesting`, `consensus`.
+**Wired (standard, unmodified):** `auth`, `bank`, `staking`, `gov`, `distribution`, `slashing`, `upgrade`, `params`, `crisis`, `feegrant`, `authz`, `consensus`, `genutil`, `evidence`, `vesting`, plus the IBC stack: `capability`, `ibc`, `transfer`, `ica` (27-interchain-accounts), `29-fee`.
 
-> `x/consensus` is required by Cosmos SDK v0.50 (replaces the consensus params previously held in CometBFT genesis). It is added beyond the [`technical-design.md`](../technical-design.md) §1.3 list, which predates this note; flag for a doc sync.
+> `x/consensus` is required by Cosmos SDK v0.50 (replaces the consensus params previously held in CometBFT genesis) and is present in the scaffold. It is beyond the [`technical-design.md`](../technical-design.md) §1.3 list, which predates this note — flag for a doc sync. The IBC stack's `ica`/`29-fee` are likewise kept (see D1a).
 
-**Custom:** none in Phase 0. Wiring is structured with explicit, commented insertion points so `oracle → rwa → fees` slot in without re-architecting.
+**Removed (from the scaffold default):** `x/mint` (hard-cap requirement), `x/nft`, `x/group`, `x/circuit` — not in §1.3. Each is removed from `app/app_config.go` (imports, module config block, `genesisModuleOrder`, `beginBlockers`/`endBlockers`, `moduleAccPerms`, `blockAccAddrs`) and `app/app.go` (imports, `App` struct keeper field, `depinject.Inject` target).
 
-**Removed:** `x/mint` — not constructed, no store key, no module-manager entry, no genesis section. This is the headline divergence from the Ignite scaffold default.
+**Custom:** none in Phase 0. The `# stargate/app/...` scaffolding markers in `app_config.go`/`app.go` are the insertion points where `oracle → rwa → fees` slot in later without re-architecting.
 
-### 4.2 Ordering (locked now, even with no custom modules)
+### 4.2 Ordering (already explicit in `app_config.go`)
 
-- **`SetOrderEndBlockers`:** standard chain order today; custom suffix `oracle → rwa → fees` reserved (`technical-design.md` §7).
-- **`SetOrderInitGenesis`:** SDK default order today; custom prefix `staking → oracle → rwa → fees` reserved.
-- **`SetOrderBeginBlockers`:** SDK default (no custom Begin-block work in Vertix modules).
+Ignite emits these as plain string slices; the custom modules append at the documented markers:
+
+- **`endBlockers`:** scaffold order today; custom suffix `oracle → rwa → fees` appended later (`technical-design.md` §7).
+- **`genesisModuleOrder` (InitGenesis):** scaffold order today; custom prefix `staking → oracle → rwa → fees` later.
+- **`beginBlockers` / `preBlockers`:** scaffold default (no custom Begin-block work in Vertix modules). Note: removing `mint` drops it from `beginBlockers`.
 
 ### 4.3 Reward funding without `x/mint`
 
@@ -217,11 +220,14 @@ All green is the bar every later phase inherits (cross-phase CI/lint/proto gate)
 
 | Item | Risk | Mitigation |
 |---|---|---|
-| Ignite (depinject) → manual `app.go` conversion | Highest-effort step; IBC + capability wiring is fiddly | Use SDK v0.50 `simapp` as the reference shape; convert incrementally and keep the chain booting at each step |
-| SDK version drift in scaffold | Ignite may pull a line newer than v0.50.x | Verify in `go.mod` after scaffold; force-pin v0.50.x |
-| golangci-lint v1.57 vs local Go 1.26 | Local lint noise for devs on newer Go | CI runs Go 1.22 (clean); document local guidance in README |
+| Trimming `mint`/`nft`/`group`/`circuit` from depinject | Each module is referenced in ~6 places across two files; a missed reference fails the build | Remove one module per task; `make build` after each; the compiler surfaces every dangling reference |
+| Keeping IBC `ica`/`29-fee` vs strict §1.3 | Deviation from the literal wired list | Documented in D1a; flagged for user veto; Phase 5 owns any further IBC trimming |
+| Go directive `1.25.0` → `1.22` | A transitive dep may require > 1.22 | After setting `go 1.22`, run `make build`; if a dep forces higher, bump to the lowest that builds (1.23) and note it |
+| Scaffold pins (sdk v0.50.14, cometbft v0.38.17, ibc-go v8.5.2) | Already within program pins | No action; recorded for traceability |
+| golangci-lint version | Scaffold Makefile auto-installs v1.61.0 (> v1.57 pin floor) | Acceptable (satisfies "v1.57+"); `.golangci.yml` defines the enabled linter set; CI runs Go 1.22 |
+| Merging scaffold into the existing repo | Scaffold creates a fresh dir; repo already has `docs/`, `AGENTS.md`, `.cursor/`, `.git` | Scaffold to a temp dir, copy in without clobbering existing `docs/*.md` |
 | `ts-gen` | No client consumers yet | Wire the target; do not exercise in CI |
-| `x/consensus` vs `technical-design.md` §1.3 list | Doc omits it | Add `x/consensus` to the §1.3 wired list in a docs sync |
+| `x/consensus` vs `technical-design.md` §1.3 list | Doc omits it | Add `x/consensus` (+ note on the IBC stack) to the §1.3 wired list in a docs sync |
 
 ---
 
