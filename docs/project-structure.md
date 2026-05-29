@@ -244,29 +244,45 @@ Run with `cd e2e && go test ./... -timeout 30m -v`.
 
 ```
 infra/
-├── devnet/
-│   ├── docker-compose.yml          3-validator devnet stack
-│   ├── validator1/config/
-│   ├── validator2/config/
-│   └── validator3/config/
+├── devnet/                         🛠️  Phase 6 — 3-validator Docker devnet
+│   ├── .env                        Pinned image tags, chain IDs
+│   ├── mnemonics.env               Fixed devnet-only mnemonics (NEVER mainnet)
+│   ├── Dockerfile                  vertix:devnet (vertixd + vertix-feeder)
+│   ├── docker-compose.yml          Validators, feeders, gaia, hermes, explorer, faucet, monitoring
+│   ├── keys/validator{1,2,3}/      Fixed node + consensus keys
+│   ├── feeder/feeder{1,2,3}.yaml   Per-validator feeder config
+│   └── gaia/init-gaia.sh           gaia single-node genesis
 ├── hermes/
-│   └── config.toml                 Hermes relayer config
+│   └── config.toml                 🛠️  Hermes config (vertix-devnet-1 ↔ gaia-devnet-1)
 ├── explorer/
 │   └── chains/
-│       └── vertix.json             Ping.pub chain definition
+│       └── vertix.json             🛠️  Ping.pub chain definition
 └── monitoring/
-    ├── prometheus.yml              Scrape config for vertixd + feeder
+    ├── prometheus.yml              🛠️  Scrape CometBFT + feeders + Hermes
     └── grafana/
+        ├── provisioning/           Datasource + dashboard provider
         └── dashboards/
-            └── vertix.json         CometBFT + oracle + fees + RWA panels
+            └── vertix.json         Starter Vertix dashboard
 ```
 
-Devnet workflow:
+Generated at runtime (gitignored): `infra/devnet/.gen/`, `infra/devnet/data/`.
+
+**Devnet workflows (coexist — D5):**
 
 ```bash
-make devnet-reset       # wipe and start a fresh 3-validator devnet
-make devnet             # bring up devnet keeping state
+# Fast single-node loop (Ignite)
+make devnet-reset       # fresh Ignite serve
+make devnet             # Ignite serve, keep state
+
+# Multi-validator Docker stack (Phase 6)
+make devnet-docker-build
+make localnet-up        # build image + init genesis + compose up
+make localnet-reset     # deterministic wipe + re-seed
+make devnet-smoke       # automated oracle → rwa → fees → IBC gate
+make localnet-down
 ```
+
+Scripts: `scripts/devnet/{lib,gen-keys,init-genesis,setup-feeders,setup-ibc,smoke}.sh`.
 
 ---
 
@@ -290,8 +306,8 @@ docs/
 ├── coding-standards.md
 ├── roadmap.md
 ├── tokenomics.md
-├── devnet.md                    (created by Plan 06)
-├── relayer.md                   (created by Plan 06)
+├── devnet.md                    🛠️  Phase 6 Docker devnet runbook
+├── relayer.md                   🛠️  Hermes / rly guide (+ devnet ↔ gaia section)
 ├── tmkms.md                     (created by Phase 6 — security hardening)
 ├── validator-setup.md           (created by Phase 6)
 ├── validator-onboarding.md      (created by Phase 7)
@@ -323,8 +339,11 @@ config.yml                 Ignite chain identity + devnet genesis overrides
 | `make lint` | Run `golangci-lint` |
 | `make proto-gen` | Generate Go from protobuf |
 | `make ts-gen` | Generate TypeScript client |
-| `make devnet-reset` | Start fresh devnet (Ignite serve --reset-once) |
-| `make devnet` | Start devnet keeping state |
+| `make devnet-reset` | Start fresh **single-node** devnet (Ignite) |
+| `make devnet` | Start single-node devnet keeping state (Ignite) |
+| `make devnet-docker-build` | Build `vertix:devnet` image |
+| `make localnet-up` / `localnet-reset` / `localnet-down` | Docker 3-validator stack |
+| `make devnet-smoke` | End-to-end devnet smoke gate |
 | `make validate-genesis` | Run `vertixd genesis validate-genesis` |
 | `make clean` | Remove build artifacts |
 

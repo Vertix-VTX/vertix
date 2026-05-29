@@ -1,0 +1,32 @@
+chain_id: vertix-devnet-1
+node_grpc: vertix-val1:9090
+validator: VALOPER1_PLACEHOLDER     # replaced at seed time by init-genesis.sh
+key_name: feeder1
+keyring_backend: test
+keyring_dir: /keyring
+fees: 2000uvtx
+gas: "300000"
+gas_adjustment: 1.3
+feed_interval: 5s
+submit_poll_interval: 1s
+vote_window: 0
+broadcast_retries: 3
+quality:
+  min_providers: 1
+  max_deviation: "0.10"
+  max_quote_age: 30s
+providers: ["static"]               # offline-safe default (D10); add coingecko/binance for live
+static_prices:
+  "VTX:USD": "0.10"
+  "BTC:USD": "65000.00"
+  "ETH:USD": "3500.00"
+  "ATOM:USD": "8.50"
+  "USDC:USD": "1.00"
+pairs:
+  - { pair: "VTX:USD",  symbols: { static: "VTX:USD" } }
+  - { pair: "BTC:USD",  symbols: { static: "BTC:USD" } }
+  - { pair: "ETH:USD",  symbols: { static: "ETH:USD" } }
+  - { pair: "ATOM:USD", symbols: { static: "ATOM:USD" } }
+  - { pair: "USDC:USD", symbols: { static: "USDC:USD" } }
+prometheus: { enabled: true, port: 9200 }
+log_level: info

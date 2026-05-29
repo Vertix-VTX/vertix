@@ -144,6 +144,35 @@ clean:
 .PHONY: build feeder-build clean
 
 ###################
+###   Devnet (Docker, Phase 6) ###
+###################
+
+DEVNET_DIR ?= infra/devnet
+COMPOSE ?= docker compose --env-file $(DEVNET_DIR)/.env --env-file $(DEVNET_DIR)/mnemonics.env -f $(DEVNET_DIR)/docker-compose.yml
+
+devnet-docker-build:
+	@echo "--> Building vertix:devnet image"
+	@docker build -f $(DEVNET_DIR)/Dockerfile -t vertix:devnet .
+
+localnet-genesis:
+	@./scripts/devnet/init-genesis.sh
+
+localnet-up: devnet-docker-build localnet-genesis
+	@echo "--> Starting devnet stack"
+	@$(COMPOSE) up -d
+
+localnet-down:
+	@echo "--> Stopping devnet stack"
+	@$(COMPOSE) down -v
+
+localnet-reset: localnet-down localnet-up
+
+devnet-smoke:
+	@./scripts/devnet/smoke.sh --bootstrap
+
+.PHONY: devnet-docker-build localnet-genesis localnet-up localnet-down localnet-reset devnet-smoke
+
+###################
 ###  Genesis    ###
 ###################
 

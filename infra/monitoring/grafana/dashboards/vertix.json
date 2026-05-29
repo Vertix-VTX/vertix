@@ -1,0 +1,28 @@
+{
+  "title": "Vertix Devnet",
+  "uid": "vertix-devnet",
+  "schemaVersion": 39,
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "timeseries", "title": "Block height (per validator)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"expr": "cometbft_consensus_height", "legendFormat": "{{instance}}"}]
+    },
+    {
+      "type": "timeseries", "title": "Validator missed blocks",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{"expr": "cometbft_consensus_validator_missed_blocks", "legendFormat": "{{instance}}"}]
+    },
+    {
+      "type": "timeseries", "title": "Feeder feeds_submitted_total",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"expr": "vertix_feeder_feeds_submitted_total", "legendFormat": "{{instance}} {{pair}}"}]
+    },
+    {
+      "type": "timeseries", "title": "Feeder feeds_failed_total",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [{"expr": "vertix_feeder_feeds_failed_total", "legendFormat": "{{instance}} {{pair}} {{reason}}"}]
+    }
+  ]
+}

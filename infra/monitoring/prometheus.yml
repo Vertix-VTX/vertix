@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: cometbft
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["vertix-val1:26660","vertix-val2:26660","vertix-val3:26660"]
+  - job_name: feeders
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["feeder1:9200","feeder2:9200","feeder3:9200"]
+  - job_name: hermes
+    static_configs:
+      - targets: ["hermes:3001"]

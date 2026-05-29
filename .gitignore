@@ -10,3 +10,7 @@ release/
 build/vertixd
 build/vertix-feeder
 build/
+
+# Phase 6 devnet generated node data (config templates + keys ARE committed)
+infra/devnet/data/
+infra/devnet/.gen/

@@ -1,0 +1,158 @@
+name: vertix-devnet
+
+x-validator: &validator
+  image: ${VERTIX_IMAGE}
+  restart: unless-stopped
+  networks: [devnet]
+
+services:
+  init:
+    image: ${VERTIX_IMAGE}
+    networks: [devnet]
+    volumes:
+      - ./.gen:/gen:ro
+      - val1data:/v1
+      - val2data:/v2
+      - val3data:/v3
+    entrypoint: ["sh","-c"]
+    command:
+      - |
+        set -e
+        for i in 1 2 3; do
+          rm -rf /v$$i/* && cp -r /gen/validator$$i/* /v$$i/ 2>/dev/null || true
+          mkdir -p /v$$i/config /v$$i/data
+          cp -r /gen/validator$$i/config/* /v$$i/config/
+          # fresh priv_validator_state for a clean reset
+          echo '{"height":"0","round":0,"step":0}' > /v$$i/data/priv_validator_state.json
+        done
+        echo "init: seeded validator homes"
+
+  vertix-val1:
+    <<: *validator
+    depends_on: { init: { condition: service_completed_successfully } }
+    command: ["vertixd","start","--home","/root/.vertixd"]
+    volumes: ["val1data:/root/.vertixd"]
+    ports:
+      - "26657:26657"   # RPC
+      - "9090:9090"     # gRPC
+      - "1317:1317"     # REST
+      - "26660:26660"   # CometBFT Prometheus
+
+  vertix-val2:
+    <<: *validator
+    depends_on: { init: { condition: service_completed_successfully } }
+    command: ["vertixd","start","--home","/root/.vertixd"]
+    volumes: ["val2data:/root/.vertixd"]
+
+  vertix-val3:
+    <<: *validator
+    depends_on: { init: { condition: service_completed_successfully } }
+    command: ["vertixd","start","--home","/root/.vertixd"]
+    volumes: ["val3data:/root/.vertixd"]
+
+  feeder1:
+    image: ${VERTIX_IMAGE}
+    restart: unless-stopped
+    networks: [devnet]
+    depends_on: { vertix-val1: { condition: service_started } }
+    command: ["vertix-feeder","--config","/cfg/feeder1.yaml"]
+    volumes:
+      - ./.gen/feeder:/cfg:ro
+      - ./.gen/feeder/keyring:/keyring:ro
+    ports: ["9201:9200"]
+
+  feeder2:
+    image: ${VERTIX_IMAGE}
+    restart: unless-stopped
+    networks: [devnet]
+    depends_on: { vertix-val2: { condition: service_started } }
+    command: ["vertix-feeder","--config","/cfg/feeder2.yaml"]
+    volumes: ["./.gen/feeder:/cfg:ro","./.gen/feeder/keyring:/keyring:ro"]
+    ports: ["9202:9200"]
+
+  feeder3:
+    image: ${VERTIX_IMAGE}
+    restart: unless-stopped
+    networks: [devnet]
+    depends_on: { vertix-val3: { condition: service_started } }
+    command: ["vertix-feeder","--config","/cfg/feeder3.yaml"]
+    volumes: ["./.gen/feeder:/cfg:ro","./.gen/feeder/keyring:/keyring:ro"]
+    ports: ["9203:9200"]
+
+  gaia:
+    image: ${GAIA_IMAGE}
+    restart: unless-stopped
+    networks: [devnet]
+    environment:
+      GAIA_CHAIN_ID: ${GAIA_CHAIN_ID}
+    entrypoint: ["sh","-c","/init-gaia.sh \"$$RELAYER_MNEMONIC\""]
+    env_file: [./mnemonics.env]
+    volumes:
+      - ./gaia/init-gaia.sh:/init-gaia.sh:ro
+      - gaiadata:/root/.gaia
+    ports: ["26757:26657"]
+
+  hermes:
+    image: ${HERMES_IMAGE}
+    restart: unless-stopped
+    networks: [devnet]
+    depends_on: { vertix-val1: { condition: service_started }, gaia: { condition: service_started } }
+    entrypoint: ["sh","-c","sleep infinity"]   # channel opened by setup-ibc.sh; then relays
+    volumes: ["../hermes/config.toml:/root/.hermes/config.toml:ro"]
+    ports: ["3001:3001"]
+
+  explorer:
+    image: ${EXPLORER_IMAGE}
+    restart: unless-stopped
+    networks: [devnet]
+    depends_on: { vertix-val1: { condition: service_started } }
+    volumes: ["../explorer/chains/vertix.json:/app/chains/mainnet/vertix.json:ro"]
+    ports: ["8080:80"]
+
+  faucet:
+    image: ${FAUCET_IMAGE}
+    restart: unless-stopped
+    networks: [devnet]
+    depends_on: { vertix-val1: { condition: service_started } }
+    env_file: [./mnemonics.env]
+    environment:
+      FAUCET_CONCURRENCY: "2"
+      FAUCET_PORT: "8000"
+      FAUCET_GAS_PRICE: "0.025uvtx"
+      FAUCET_MNEMONIC: ${MNEMONIC_FAUCET}
+      FAUCET_ADDRESS_PREFIX: "vtx"
+      FAUCET_TOKENS: "uvtx"
+      FAUCET_CREDIT_AMOUNT_UVTX: "10000000"
+      FAUCET_COOLDOWN_TIME: "60"
+    command: ["start","http://vertix-val1:26657"]
+    ports: ["8000:8000"]
+
+  prometheus:
+    image: ${PROMETHEUS_IMAGE}
+    restart: unless-stopped
+    networks: [devnet]
+    volumes: ["../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9095:9090"]
+
+  grafana:
+    image: ${GRAFANA_IMAGE}
+    restart: unless-stopped
+    networks: [devnet]
+    depends_on: { prometheus: { condition: service_started } }
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "devnet"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+
+networks:
+  devnet: { name: vertix-devnet }
+
+volumes:
+  val1data: {}
+  val2data: {}
+  val3data: {}
+  gaiadata: {}

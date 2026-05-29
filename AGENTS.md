@@ -195,7 +195,16 @@ build/vertix-feeder --config feeder-config.example.yaml
 # E2E (separate Go module)
 make e2e                 # build vertixd image + run interchaintest ICS-20 suite
 cd e2e && go test ./... -timeout 30m -v
+
+# Multi-validator devnet (Phase 6, Docker)
+make devnet-docker-build       # build vertix:devnet image
+make localnet-up               # start 3 validators + feeders + gaia + hermes + explorer + faucet + monitoring
+make localnet-reset            # deterministic fresh devnet
+make devnet-smoke              # full e2e gate (oracle -> rwa -> fees -> ibc)
+make localnet-down             # stop + remove
 ```
+
+See [`docs/devnet.md`](./docs/devnet.md) for the full runbook.
 
 ---
 
