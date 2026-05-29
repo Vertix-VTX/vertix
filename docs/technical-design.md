@@ -126,7 +126,7 @@ type StakingKeeper interface {
     GetValidator(ctx context.Context, addr sdk.ValAddress) (stakingtypes.Validator, error) // valoper → record
     GetLastValidatorPower(ctx context.Context, addr sdk.ValAddress) (int64, error)
     GetBondedValidatorsByPower(ctx context.Context) ([]stakingtypes.Validator, error)
-    TotalBondedTokens(ctx context.Context) (math.Int, error)                               // quorum denominator
+    GetLastTotalPower(ctx context.Context) (math.Int, error)                               // quorum denominator (consensus power — same units as GetLastValidatorPower)
 }
 
 // Slash returns error only in SDK v0.50 (no math.Int). Jail is intentionally NOT used
@@ -140,7 +140,7 @@ type SlashingKeeper interface {
 
 | Prefix | Key | Value |
 |---|---|---|
-| `0x01` | `{validator}/{pair}` | `OracleFeed` (current window) |
+| `0x01` | `{length-prefixed valoper}/{pair}` | `OracleFeed` (current window) |
 | `0x02` | `{pair}` | `AggregatedPrice` (latest) |
 | `0x03` | `{pair}/{ts_unixnano_be}` | `TWAPEntry` (history) |
 | `0x04` | `{validator}` | `int64` miss counter (tumbling) |
@@ -161,17 +161,17 @@ EndBlock(ctx):
 
     vals        = BondedValidatorsByPower()              # sorted, deterministic
     valByOper   = { v.Operator: v for v in vals }        # built once; read-by-key only
-    totalBonded = TotalBondedTokens()
-    quorumLive  = {}
+    totalPower  = GetLastTotalPower()                      # consensus power (not raw bonded tokens)
+    quorumLive  = []                                       # slice in accept_list order
 
     # 1. Aggregate (quorum-gated) per pair
     for pair in params.AcceptList:
-        feeds = GetAllFeedsForPair(pair)                 # parse defensively; skip bad/non-positive (no panic)
+        feeds = GetAllFeedsForPair(pair)                 # full 0x01 scan filtered by pair; parse defensively
         if feeds is empty: continue
         submittedPower = Σ power(f.Validator)
-        if submittedPower / totalBonded < params.QuorumFraction:
+        if submittedPower / totalPower < params.QuorumFraction:
             continue                                     # below quorum: no price, no TWAP, not a miss
-        quorumLive.add(pair)
+        quorumLive.append(pair)
         median    = WeightedMedian(prices, weights)      # STAKE-weighted → published price
         refMedian = UnweightedMedian(prices)             # COUNT-based   → outlier reference
         SetAggregatedPrice(pair, median, height, blockTime)

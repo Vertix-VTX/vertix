@@ -1,7 +1,7 @@
 # Phase 1 — `x/oracle` (On-Chain Aggregation + Slashing) — Design Spec
 
 **Date:** 2026-05-29
-**Status:** Approved (brainstorm output) · **Revised 2026-05-29** (design-review fixes — see §0 changelog)
+**Status:** Approved (brainstorm output) · **Revised 2026-05-29** (design-review + plan-review fixes — see §0 changelog, incl. C1b quorum power units)
 **Phase:** 1 of the canonical phase map ([`full-design-spec.md`](../full-design-spec.md) §7.2)
 **Depends on:** Phase 0 (Chain Foundation); SDK `staking`, `slashing`, `params` · **Enables:** Phase 3 (`x/rwa` price consumption), Phase 4 (`vertix-feeder` target)
 **Owns:** validator-submitted price feeds, feeder delegation, quorum-gated stake-weighted-median aggregation, TWAP histories, miss/outlier slashing, and the `OracleKeeper` interface consumed by `x/rwa`.
@@ -22,6 +22,7 @@ A careful review of the original brainstorm output surfaced design-level issues 
 | **H2** | High | Cumulative `min_windows_before_slash=10` + 5% threshold meant a **single** early miss guaranteed a slash. | Replaced with a **tumbling evaluation window** `miss_window_size` (default 500); rate is judged over a fixed, meaningful sample. (D3) |
 | **H3** | High | `GetPrice` exposed no freshness, so Phase 3 could attest against a **stale** price. | New `max_price_age` param; `GetPrice`/`GetTWAP` return `ErrStalePrice` when the latest aggregation is older than it. (D12) |
 | **H4** | High | `StakingKeeper` expected-interface lacked `GetValidator` (valoper→record) needed by submit + outlier slashing. | Interface corrected; `GetValidatorByConsAddr` dropped in favor of `GetValidator`; EndBlock builds one `valoper→Validator` map per window. (§4) |
+| **C1b** | Critical | Quorum check compared **consensus power** (`GetLastValidatorPower`) to **raw bonded tokens** (`TotalBondedTokens`), so `submittedPower/totalBonded ≈ 1e-6` and no pair ever reached quorum on a real chain. | Quorum denominator is now **`GetLastTotalPower`** (total consensus power, same units as per-validator power). (§4, §9) |
 | **M1–M4** | Medium | EndBlock panic-safety on stored/imported data, genesis price validation, exact TWAP formula, `vote_window` realignment all under-specified. | Specified in §6/§7/§9. |
 | **L1–L5** | Low | distributionHeight choice, zero-power slash no-op, median tie-bias, export-wipes-history all undocumented. | Documented in §7/§9/§13. |
 
@@ -136,9 +137,9 @@ type OracleKeeper interface {
 ```go
 type StakingKeeper interface {
     GetValidator(ctx context.Context, addr sdk.ValAddress) (stakingtypes.Validator, error)        // valoper → record (submit verify + outlier consAddr)
-    GetLastValidatorPower(ctx context.Context, addr sdk.ValAddress) (int64, error)                // weight + slash power
-    GetBondedValidatorsByPower(ctx context.Context) ([]stakingtypes.Validator, error)             // deterministic miss loop + quorum total
-    TotalBondedTokens(ctx context.Context) (math.Int, error)                                      // quorum denominator (D11)
+    GetLastValidatorPower(ctx context.Context, addr sdk.ValAddress) (int64, error)                // weight + slash power (consensus power)
+    GetBondedValidatorsByPower(ctx context.Context) ([]stakingtypes.Validator, error)             // deterministic miss loop
+    GetLastTotalPower(ctx context.Context) (math.Int, error)                                      // quorum denominator (D11) — total consensus power, same units as GetLastValidatorPower
 }
 
 type SlashingKeeper interface {
@@ -148,7 +149,7 @@ type SlashingKeeper interface {
 
 (`Jail` is intentionally excluded — D7.)
 
-> **Interface correction (H4).** The original draft listed `GetValidatorByConsAddr` (cons→record), but every oracle code path starts from the **operator** address (`MsgSubmitFeed.validator`, the `0x01` feed key): `SubmitFeed` must verify the operator is bonded, and the **outlier** slash path must derive `consAddr` from a valoper. Both need `GetValidator(valAddr)`, which is now the listed method. In `EndBlock` the keeper builds **one `valoper → Validator` map** from `GetBondedValidatorsByPower()` and reuses it for power weights, the quorum total, miss iteration, and `consAddr` resolution — avoiding repeated keeper calls. `TotalBondedTokens` provides the quorum denominator (D11). Doc-sync to `technical-design.md` §2.3 (§13).
+> **Interface correction (H4 / C1b).** The original draft listed `GetValidatorByConsAddr` (cons→record), but every oracle code path starts from the **operator** address (`MsgSubmitFeed.validator`, the `0x01` feed key): `SubmitFeed` must verify the operator is bonded, and the **outlier** slash path must derive `consAddr` from a valoper. Both need `GetValidator(valAddr)`, which is now the listed method. In `EndBlock` the keeper builds **one `valoper → Validator` map** from `GetBondedValidatorsByPower()` and reuses it for power weights, miss iteration, and `consAddr` resolution — avoiding repeated keeper calls. **Quorum denominator (C1b):** use `GetLastTotalPower` (total **consensus** power), not `TotalBondedTokens` (raw tokens). `GetLastValidatorPower` returns consensus power (`tokens / PowerReduction`); comparing summed validator power to raw bonded tokens makes the ratio ~`1/PowerReduction` and quorum is never met. Doc-sync to `technical-design.md` §2.3 (§13).
 
 > **Signature note (verified against SDK v0.50.14):** `x/slashing` keeper's `Slash` returns only `error`, not `(math.Int, error)` as `technical-design.md` §2.3 shows. The burned amount is therefore not available to the event emitter — the `oracle_slash` event carries the slash **fraction** (rate) instead of an absolute amount. Flagged as a doc-sync (§13).
 
@@ -298,7 +299,7 @@ In-flight feeds (`0x01`), TWAP history (`0x03`), and miss/total counters (`0x04`
 
 | Prefix | Key | Value | Operations |
 |---|---|---|---|
-| `0x01` | `{valoper}/{pair}` | `OracleFeed` (current window) | set on submit (last write wins); iterate-by-pair in EndBlock; delete-all after window |
+| `0x01` | `{length-prefixed valoper}/{pair}` | `OracleFeed` (current window) | set on submit (last write wins); full `0x01` scan filtered by pair in EndBlock (valoper length-prefixed — address bytes may contain `0x2f`); delete-all after window |
 | `0x02` | `{pair}` | `AggregatedPrice` (latest) | set in EndBlock (only if quorum met, D11); read by `GetPrice` |
 | `0x03` | `{pair}/{ts_unixnano_be}` | `TWAPEntry` (history) | append in EndBlock; reverse-iterate in `GetTWAP`; prune > 24h |
 | `0x04` | `{valoper}` | `int64` miss counter | inc / reset in EndBlock (tumbling, D3) |
@@ -317,7 +318,7 @@ Timestamps are big-endian `unixnano` for correct ordered iteration on `0x03`.
 
 So Phase 3 attestation can distinguish "no feed yet" from "feed too old" from a live price, and can never attest against a stale value.
 
-**TWAP formula (M3).** `GetTWAP(pair, window)` is a true **time-weighted** average over `0x03` entries with `block_time ∈ [now − window, now]`, sorted ascending: each entry `eᵢ` is weighted by the duration it was the prevailing price, `wᵢ = (eᵢ₊₁.time − eᵢ.time)` for interior entries and `(now − eₙ.time)` for the last; the partial leading interval is clamped at `now − window`. Result `= Σ(eᵢ.price · wᵢ) / Σ wᵢ`. If exactly one entry is in range it returns that entry's price; if none, `ErrNoTWAPData`. `GetTWAP` applies the same `MaxPriceAge` staleness check against the most recent entry. This is a frozen cross-phase contract (Phase 3).
+**TWAP formula (M3).** `GetTWAP(pair, window)` is a true **time-weighted** average over `0x03` entries, sorted ascending. Collect the newest entry with `block_time ≤ now` and all entries back to (and including) the **last entry with `block_time ≤ now − window`** — that pre-window entry contributes from `now − window` forward (leading interval clamp). Each in-range entry `eᵢ` is weighted by the duration it was the prevailing price: `wᵢ = (eᵢ₊₁.time − eᵢ.time)` for interior entries, `(now − eₙ.time)` for the last, and `(e₁.time − windowStart)` when `e₁` is the clamped leading entry. Result `= Σ(eᵢ.price · wᵢ) / Σ wᵢ`. If exactly one entry contributes it returns that entry's price; if none, `ErrNoTWAPData`. `GetTWAP` applies the same `MaxPriceAge` staleness check against the most recent entry. This is a frozen cross-phase contract (Phase 3).
 
 ---
 
@@ -352,8 +353,8 @@ EndBlocker(ctx):
   # Build ONE deterministic valoper→Validator map for the whole pass (H4).
   vals        = StakingKeeper.GetBondedValidatorsByPower()       # sorted, deterministic
   valByOper   = { v.OperatorAddress: v for v in vals }
-  totalBonded = StakingKeeper.TotalBondedTokens()                # quorum denominator (D11)
-  quorumLive  = {}                                               # pairs that reached quorum this window
+  totalPower    = StakingKeeper.GetLastTotalPower()              # quorum denominator — consensus power (D11 / C1b)
+  quorumLive    = []                                             # pairs that reached quorum this window (slice, accept_list order)
 
   # 1. Aggregate (quorum-gated) + outlier slash, per pair
   for pair in p.accept_list:                                     # stored order (deterministic)
@@ -366,9 +367,9 @@ EndBlocker(ctx):
           pw = GetLastValidatorPower(valoper)
           weighted.append((price, pw)); rawPrices.append(price); submittedPower += pw
 
-      if Dec(submittedPower) / Dec(totalBonded) < p.quorum_fraction:            # D11: below quorum → skip pair
+      if Dec(submittedPower) / Dec(totalPower) < p.quorum_fraction:              # D11: below quorum → skip pair (same units: consensus power)
           continue                                                              #   (no price, no TWAP, not a miss)
-      quorumLive.add(pair)
+      quorumLive.append(pair)                                                   # preserve accept_list order (deterministic)
 
       median    = WeightedMedian(weighted)                       # STAKE-weighted → the published price
       refMedian = UnweightedMedian(rawPrices)                    # COUNT-based   → outlier reference (D2/H1)
@@ -404,16 +405,19 @@ UnweightedMedian(prices):                                        # outlier refer
   sort prices ascending; return prices[n/2] (lower-mid on even n)
 
 slash(v, rate, reason):
-  consAddr = v.GetConsAddr()                                     # from the Validator record in the map (H4)
+  consAddr, err = v.GetConsAddr()                                # from the Validator record in the map (H4); skip on err — never panic
+  if err != nil: return
   power    = GetLastValidatorPower(v.OperatorAddress)
   if power == 0: return                                          # nothing to slash (L2)
   SlashingKeeper.Slash(consAddr, rate, power, height)            # error only; NO Jail (D7); distributionHeight = height (L1)
   emit oracle_slash{validator, slash_reason=reason, slash_fraction=rate}
 ```
 
-**Determinism guarantees:** `accept_list` iterated in stored order; the bonded set via `GetBondedValidatorsByPower` (sorted, with valoper tie-break); `0x01` iteration is over ordered KV keys; the `valByOper` map is built once but only *read* by key (never range-iterated) in the hot path; the `submittedAllLive` check is computed by deterministic KV iteration, not Go-map ranging. Outlier and miss slashes are independent (a validator may incur both in one window with distinct events).
+**Determinism guarantees:** `accept_list` iterated in stored order; the bonded set via `GetBondedValidatorsByPower` (sorted, with valoper tie-break); `0x01` iteration is over ordered KV keys; the `valByOper` map is built once but only *read* by key (never range-iterated) in the hot path; `quorumLive` is a **slice** appended in `accept_list` order (never a map); the `submittedAllLive` check iterates that slice and uses per-validator pair membership from deterministic KV iteration. Outlier and miss slashes are independent (a validator may incur both in one window with distinct events).
 
-**Panic-safety (M1):** every value read from the store in `EndBlock` (feed prices, params) is parsed defensively — an unparseable or non-positive feed is **skipped**, never fatal. Genesis-imported prices are validated at `InitGenesis` (§5.4). The only division guards (`totalBonded > 0`, `refMedian > 0`) are covered because a quorum-met pair has ≥1 positive-price feed and a non-zero bonded set.
+**Panic-safety (M1):** every value read from the store in `EndBlock` (feed prices, params) is parsed defensively — an unparseable or non-positive feed is **skipped**, never fatal. Genesis-imported prices are validated at `InitGenesis` (§5.4). The only division guards (`totalPower > 0`, `refMedian > 0`) are covered because a quorum-met pair has ≥1 positive-price feed and a non-zero bonded set. `GetConsAddr()` errors are skipped (no slash), never fatal.
+
+**EndBlock phase order:** aggregation + outlier slash → miss tracking + slash → `DeleteAllFeeds()` last (miss logic reads `0x01` feeds).
 
 **`distributionHeight` (L1):** slashing uses the current `height`; oracle infractions are attributed to "this window," and there is no historical-infraction lookback as with double-sign evidence. Documented so it isn't "corrected" to a past height later.
 
@@ -470,7 +474,8 @@ slash(v, rate, reason):
 | H1 Outlier slashes honest minority under stake capture | Band vs stake-weighted median | Band vs **unweighted** median; published price still stake-weighted (D2, §9) |
 | H2 Single early miss → guaranteed slash | Cumulative + `MinWindowsBeforeSlash=10` | Tumbling `miss_window_size=500` (D3, §6/§9) |
 | H3 Stale price attestable by Phase 3 | `GetPrice` had no freshness | `max_price_age` + `ErrStalePrice` (D12, §6/§7) |
-| H4 `StakingKeeper` interface mismatch | `GetValidatorByConsAddr` listed | `GetValidator` + `TotalBondedTokens`; one `valoper→Validator` map per window (§4/§9) |
+| H4 `StakingKeeper` interface mismatch | `GetValidatorByConsAddr` listed | `GetValidator` + `GetLastTotalPower`; one `valoper→Validator` map per window (§4/§9) |
+| C1b Quorum never met on-chain | `TotalBondedTokens` vs consensus power | `GetLastTotalPower` as quorum denominator (§4/§9) |
 | M1 EndBlock panic on bad stored data | Unspecified | Defensive parse/skip; never fatal (§9) |
 | M2 Genesis price validation | Unspecified | `InitGenesis` validates prices + feeders (§5.4) |
 | M3 TWAP "time-weighted" undefined | Ambiguous | Exact duration-weighted formula (§7) |

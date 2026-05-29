@@ -6,9 +6,11 @@
 
 **Architecture:** Ignite scaffolds the module skeleton and depinject wiring; we replace the generated protos with the approved Phase 1 surface, then build in vertical slices (types → store → messages → aggregation math → EndBlock without slashing → slashing → queries → genesis → app wiring). Slashing is last (spec D9). External deps are interface-typed (`StakingKeeper`, `SlashingKeeper`) with mocks in `testutil/keeper`.
 
-**Tech Stack:** Go 1.22+, Cosmos SDK v0.50.14, CometBFT v0.38.x, Ignite CLI v28, buf v1.30+, golangci-lint v1.57+.
+**Tech Stack:** Go 1.25+ (repo toolchain), Cosmos SDK v0.50.14, CometBFT v0.38.x, Ignite CLI v28, buf v1.30+, golangci-lint v1.57+.
 
 **Reference spec:** [`docs/specs/2026-05-29-phase-1-oracle-module-design.md`](../specs/2026-05-29-phase-1-oracle-module-design.md). Where this plan and the spec disagree, the spec wins.
+
+**Revised 2026-05-29** after implementation-plan review: quorum denominator `GetLastTotalPower` (C1b), length-prefixed feed keys, scaffold-overwrite notes, compile-safe snippets, TWAP leading-interval clamp, EndBlock phase order, depinject wiring task.
 
 **Conventions:** Run commands from repo root `/home/nam-nguyen/my-projects/vertix-projects/vertix`. Commit messages follow Conventional Commits with scope (`docs/coding-standards.md` §7.1).
 
@@ -70,7 +72,17 @@ go build ./...
 
 Expected: success (scaffold boilerplate builds).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Note scaffold files to replace later**
+
+Ignite generates stubs that **conflict** with Phase 1 protos after Task 2. Do not treat these as final — overwrite or delete in Task 2:
+
+- `x/oracle/types/params.go` (scaffold `Params` / `DefaultParams`)
+- `x/oracle/types/genesis.go` (scaffold `GenesisState` / `Validate`)
+- `x/oracle/types/expected_keepers.go` (stub keepers)
+- `x/oracle/keeper/msg_server.go`, `grpc_query.go` (placeholder handlers)
+- `x/oracle/module/autocli.go` (update in Task 21)
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add x/oracle/ proto/vertix/oracle/ app/app.go app/app_config.go go.mod go.sum
@@ -92,7 +104,8 @@ EOF
 - Modify: `proto/vertix/oracle/v1/tx.proto`
 - Modify: `proto/vertix/oracle/v1/query.proto`
 - Modify: `proto/vertix/oracle/v1/genesis.proto`
-- Delete: any Ignite-default messages that conflict (e.g. scaffold params if present)
+- Delete: any Ignite-default messages that conflict (e.g. scaffold `Params` message in `types.proto` if present)
+- Replace: scaffold `x/oracle/types/params.go`, `x/oracle/types/genesis.go` (removed in Task 6 / Task 22 — use hand-written versions)
 - Create: generated `x/oracle/types/*.pb.go` via `make proto-gen`
 
 - [ ] **Step 1: Write `proto/vertix/oracle/v1/types.proto`**
@@ -331,7 +344,7 @@ EOF
 ## Task 3: Store keys and module constants
 
 **Files:**
-- Create: `x/oracle/types/keys.go`
+- Replace: `x/oracle/types/keys.go` (overwrite scaffold if present)
 - Create: `x/oracle/types/keys_test.go`
 - Modify: `x/oracle/types/codec.go` (register msgs if scaffold left placeholders)
 
@@ -384,9 +397,9 @@ package types
 import (
 	"encoding/binary"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/types/address"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -396,18 +409,23 @@ const (
 )
 
 var (
-	KeyPrefixFeed             = []byte{0x01}
-	KeyPrefixAggregatedPrice  = []byte{0x02}
-	KeyPrefixTWAP             = []byte{0x03}
-	KeyPrefixMissCounter      = []byte{0x04}
-	KeyPrefixTotalWindows     = []byte{0x05}
-	KeyParams                 = []byte{0x06}
-	KeyPrefixFeederToValoper  = []byte{0x07}
-	KeyPrefixValoperToFeeder  = []byte{0x08}
+	KeyPrefixFeed            = []byte{0x01}
+	KeyPrefixAggregatedPrice = []byte{0x02}
+	KeyPrefixTWAP            = []byte{0x03}
+	KeyPrefixMissCounter     = []byte{0x04}
+	KeyPrefixTotalWindows    = []byte{0x05}
+	KeyParams                = []byte{0x06}
+	KeyPrefixFeederToValoper = []byte{0x07}
+	KeyPrefixValoperToFeeder = []byte{0x08}
 )
 
 func FeedKey(val sdk.ValAddress, pair string) []byte {
-	return append(append(append([]byte{}, KeyPrefixFeed...), val.Bytes()...), []byte("/"+pair)...)
+	prefixed, err := address.MustLengthPrefix(val)
+	if err != nil {
+		panic(err)
+	}
+	key := append(append([]byte{}, KeyPrefixFeed...), prefixed...)
+	return append(key, []byte("/"+pair)...)
 }
 
 func ParseFeedKey(key []byte) (sdk.ValAddress, string, error) {
@@ -415,13 +433,15 @@ func ParseFeedKey(key []byte) (sdk.ValAddress, string, error) {
 		return nil, "", fmt.Errorf("invalid feed key")
 	}
 	rest := key[len(KeyPrefixFeed):]
-	slash := strings.IndexByte(string(rest), '/')
-	if slash < 0 {
+	valBytes, err := address.MustBeLengthPrefixed(rest)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid feed key: %w", err)
+	}
+	rest = rest[1+len(valBytes):]
+	if len(rest) == 0 || rest[0] != '/' {
 		return nil, "", fmt.Errorf("invalid feed key: missing pair")
 	}
-	val := sdk.ValAddress(rest[:slash])
-	pair := string(rest[slash+1:])
-	return val, pair, nil
+	return sdk.ValAddress(valBytes), string(rest[1:]), nil
 }
 
 func AggregatedPriceKey(pair string) []byte {
@@ -431,11 +451,21 @@ func AggregatedPriceKey(pair string) []byte {
 func TWAPKey(pair string, ts time.Time) []byte {
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, uint64(ts.UnixNano()))
-	return append(append(append([]byte{}, KeyPrefixTWAP...), []byte(pair)...), '/'), buf...)
+	key := append([]byte{}, KeyPrefixTWAP...)
+	key = append(key, []byte(pair)...)
+	key = append(key, '/')
+	return append(key, buf...)
 }
 
 func TWAPPrefix(pair string) []byte {
-	return append(append([]byte{}, KeyPrefixTWAP...), []byte(pair)...), '/')
+	key := append([]byte{}, KeyPrefixTWAP...)
+	key = append(key, []byte(pair)...)
+	return append(key, '/')
+}
+
+// FeedKeyPrefix returns the prefix for scanning all feeds (pair filter in callback).
+func FeedKeyPrefix() []byte {
+	return append([]byte{}, KeyPrefixFeed...)
 }
 
 func MissCounterKey(val sdk.ValAddress) []byte {
@@ -552,7 +582,7 @@ git commit -m "feat(oracle): define typed event constants"
 ## Task 6: Params defaults and validation
 
 **Files:**
-- Create: `x/oracle/types/params.go`
+- Replace: `x/oracle/types/params.go` (delete Ignite scaffold `Params` / `DefaultParams` first)
 - Create: `x/oracle/types/params_test.go`
 
 - [ ] **Step 1: Write the failing test**
@@ -605,7 +635,6 @@ Expected: FAIL — `DefaultParams` not defined.
 package types
 
 import (
-	"fmt"
 	"regexp"
 
 	"cosmossdk.io/math"
@@ -646,10 +675,7 @@ func (p OracleParams) Validate() error {
 	if err := validateDecOpenClosed(p.QuorumFraction, "quorum_fraction"); err != nil {
 		return err
 	}
-	qf, err := math.LegacyNewDecFromStr(p.QuorumFraction)
-	if err == nil && qf.LTE(math.LegacyNewDecWithPrec(5, 1)) {
-		// warn-only in logs at runtime; Validate does not reject
-	}
+	// quorum_fraction <= 0.5: warn at runtime via keeper Logger if desired; Validate does not reject
 	if err := validateSlashRate(p.MissSlashRate, "miss_slash_rate"); err != nil {
 		return err
 	}
@@ -715,11 +741,9 @@ func (p OracleParams) PairAccepted(pair string) bool {
 	}
 	return false
 }
-
-func (p OracleParams) String() string {
-	return fmt.Sprintf("vote_window=%d accept_list=%v", p.VoteWindow, p.AcceptList)
-}
 ```
+
+Do **not** add a custom `OracleParams.String()` — gogoproto generates `func (*OracleParams) String() string` on the proto type; a value-receiver `String()` collides and fails to compile.
 
 - [ ] **Step 4: Run tests**
 
@@ -903,7 +927,7 @@ type StakingKeeper interface {
 	GetValidator(ctx context.Context, addr sdk.ValAddress) (stakingtypes.Validator, error)
 	GetLastValidatorPower(ctx context.Context, addr sdk.ValAddress) (int64, error)
 	GetBondedValidatorsByPower(ctx context.Context) ([]stakingtypes.Validator, error)
-	TotalBondedTokens(ctx context.Context) (math.Int, error)
+	GetLastTotalPower(ctx context.Context) (math.Int, error) // quorum denominator — consensus power (spec C1b)
 }
 
 type SlashingKeeper interface {
@@ -944,24 +968,28 @@ import (
 
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
+	"cosmossdk.io/store"
+	"cosmossdk.io/store/metrics"
 	storetypes "cosmossdk.io/store/types"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	cosmosdb "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/types/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/cosmos/cosmos-db"
 	"github.com/stretchr/testify/require"
-	"github.com/cometbft/cometbft/proto/tendermint/types"
 
 	oraclekeeper "github.com/vertix-network/vertix/x/oracle/keeper"
 	"github.com/vertix-network/vertix/x/oracle/types"
 )
 
 type MockStaking struct {
-	Validators []stakingtypes.Validator
-	Powers     map[string]int64
-	TotalBond  math.Int
+	Validators  []stakingtypes.Validator
+	Powers      map[string]int64
+	TotalPower  math.Int // total consensus power for quorum (same units as Powers values)
 }
 
 func (m *MockStaking) GetValidator(_ context.Context, addr sdk.ValAddress) (stakingtypes.Validator, error) {
@@ -984,9 +1012,9 @@ func (m *MockStaking) GetBondedValidatorsByPower(_ context.Context) ([]stakingty
 	return m.Validators, nil
 }
 
-func (m *MockStaking) TotalBondedTokens(_ context.Context) (math.Int, error) {
-	if !m.TotalBond.IsZero() {
-		return m.TotalBond, nil
+func (m *MockStaking) GetLastTotalPower(_ context.Context) (math.Int, error) {
+	if !m.TotalPower.IsZero() {
+		return m.TotalPower, nil
 	}
 	var sum int64
 	for _, p := range m.Powers {
@@ -1013,28 +1041,29 @@ func (m *MockSlashing) Slash(_ context.Context, consAddr sdk.ConsAddress, fracti
 
 func OracleKeeper(t *testing.T, staking *MockStaking, slashing *MockSlashing) (sdk.Context, oraclekeeper.Keeper) {
 	t.Helper()
-	db := db.NewMemDB()
+	memDB := cosmosdb.NewMemDB()
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
-	stateStore := store.NewCommitMultiStore(db, log.NewNopLogger(), store.NewMetrics())
-	stateStore.MountStoreWithDB(storeKey, storetypes.StoreTypeIAVL, db)
+	stateStore := store.NewCommitMultiStore(memDB, log.NewNopLogger(), metrics.NewNoOpMetrics())
+	stateStore.MountStoreWithDB(storeKey, storetypes.StoreTypeIAVL, memDB)
 	require.NoError(t, stateStore.LoadLatestVersion())
 
 	registry := codectypes.NewInterfaceRegistry()
 	cdc := codec.NewProtoCodec(registry)
+	authority := authtypes.NewModuleAddress(govtypes.ModuleName).String()
 	k := oraclekeeper.NewKeeper(
 		cdc,
 		runtime.NewKVStoreService(storeKey),
 		staking,
 		slashing,
-		sdk.AccAddress("gov_module_address____________").String(),
+		authority,
 	)
-	ctx := sdk.NewContext(stateStore, types.Header{Height: 1}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(stateStore, cmtproto.Header{Height: 1}, false, log.NewNopLogger())
 	require.NoError(t, k.SetParams(ctx, types.DefaultParams()))
 	return ctx, k
 }
 ```
 
-Fix imports: use `cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"` and `sdk.NewContext(stateStore, cmtproto.Header{Height: 1}, ...)`. Use a valid gov authority bech32 string.
+Register staking interfaces on the codec registry if tests marshal validators.
 
 - [ ] **Step 2: Verify compile**
 
@@ -1089,7 +1118,6 @@ import (
 	"context"
 	"fmt"
 
-	"cosmossdk.io/collections"
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/log"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -1565,29 +1593,33 @@ func TestUpdateParamsResetsCountersOnAcceptListChange(t *testing.T) {
 ```go
 func (k Keeper) ResetMissCounters(ctx context.Context) error {
 	store := k.storeService.OpenKVStore(ctx)
-	iter, err := store.Iterator(types.KeyPrefixMissCounter, storetypes.PrefixEndBytes(types.KeyPrefixMissCounter))
+	if err := deleteAllWithPrefix(store, types.KeyPrefixMissCounter); err != nil {
+		return err
+	}
+	return deleteAllWithPrefix(store, types.KeyPrefixTotalWindows)
+}
+
+// deleteAllWithPrefix collects keys first, then deletes — safe while iterating.
+func deleteAllWithPrefix(store storetypes.KVStore, prefix []byte) error {
+	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
 	if err != nil {
 		return err
 	}
-	defer iter.Close()
+	var keys [][]byte
 	for ; iter.Valid(); iter.Next() {
-		if err := store.Delete(iter.Key()); err != nil {
-			return err
-		}
+		keys = append(keys, append([]byte{}, iter.Key()...))
 	}
-	iter2, err := store.Iterator(types.KeyPrefixTotalWindows, storetypes.PrefixEndBytes(types.KeyPrefixTotalWindows))
-	if err != nil {
-		return err
-	}
-	defer iter2.Close()
-	for ; iter2.Valid(); iter2.Next() {
-		if err := store.Delete(iter2.Key()); err != nil {
+	iter.Close()
+	for _, key := range keys {
+		if err := store.Delete(key); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 ```
+
+Add `storetypes "cosmossdk.io/store/types"` import in `keeper.go`.
 
 - [ ] **Step 3: Implement UpdateParams**
 
@@ -1674,11 +1706,11 @@ func UnweightedMedian(prices []math.LegacyDec) math.LegacyDec {
 	return prices[n/2]
 }
 
-func QuorumMet(submittedPower, totalBonded math.Int, quorumFraction math.LegacyDec) bool {
-	if totalBonded.IsZero() {
+func QuorumMet(submittedPower, totalPower math.Int, quorumFraction math.LegacyDec) bool {
+	if totalPower.IsZero() {
 		return false
 	}
-	ratio := math.LegacyNewDec(submittedPower.Int64()).Quo(math.LegacyNewDec(totalBonded.Int64()))
+	ratio := math.LegacyNewDec(submittedPower.Int64()).Quo(math.LegacyNewDec(totalPower.Int64()))
 	return !ratio.LT(quorumFraction)
 }
 ```
@@ -1797,8 +1829,8 @@ func TestGetTWAPDurationWeighted(t *testing.T) {
 
 	got, err := k.GetTWAP(sdk.WrapSDKContext(ctx), "BTC:USD", 200*time.Second)
 	require.NoError(t, err)
-	// 100*100s + 200*100s + 300*50s over 250s total in window
-	require.True(t, got.GT(dec("150")))
+	// window [1050, 1250]: entry@1000 contributes from 1050; 100×100s + 200×100s + 300×50s = 45000 / 250s
+	require.True(t, got.Equal(dec("180")))
 }
 ```
 
@@ -1822,16 +1854,20 @@ func (k Keeper) PruneTWAPOlderThan(ctx context.Context, pair string, cutoff time
 	if err != nil {
 		return err
 	}
-	defer iter.Close()
+	var toDelete [][]byte
 	for ; iter.Valid(); iter.Next() {
 		var e types.TWAPEntry
 		k.cdc.MustUnmarshal(iter.Value(), &e)
 		if e.BlockTime.Before(cutoff) {
-			if err := store.Delete(iter.Key()); err != nil {
-				return err
-			}
+			toDelete = append(toDelete, append([]byte{}, iter.Key()...))
 		} else {
-			break // keys sorted ascending by ts
+			break
+		}
+	}
+	iter.Close()
+	for _, key := range toDelete {
+		if err := store.Delete(key); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -1864,10 +1900,10 @@ func (k Keeper) GetTWAP(ctx context.Context, pair string, window time.Duration) 
 		if e.BlockTime.After(now) {
 			continue
 		}
-		if e.BlockTime.Before(windowStart) {
-			break
-		}
 		entries = append(entries, e)
+		if !e.BlockTime.After(windowStart) {
+			break // include last entry at or before windowStart (leading clamp)
+		}
 	}
 	if len(entries) == 0 {
 		return math.LegacyZeroDec(), types.ErrNoTWAPData
@@ -1943,6 +1979,18 @@ import (
 	"github.com/vertix-network/vertix/x/oracle/types"
 )
 
+func bondingValidator(t *testing.T, val sdk.ValAddress) stakingtypes.Validator {
+	t.Helper()
+	pub := ed25519.GenPrivKey().PubKey()
+	pkAny, err := codectypes.NewAnyWithValue(pub)
+	require.NoError(t, err)
+	return stakingtypes.Validator{
+		OperatorAddress: val.String(),
+		ConsensusPubkey: pkAny,
+		Status:          stakingtypes.Bonded,
+	}
+}
+
 func makeValidator(t *testing.T) (sdk.ValAddress, string) {
 	t.Helper()
 	val := sdk.ValAddress(sdk.MustAccAddressFromBech32(sample.AccAddress()).Bytes())
@@ -1955,12 +2003,12 @@ func TestEndBlockAggregatesWeightedMedian(t *testing.T) {
 	v3, s3 := makeValidator(t)
 	mock := &keeper.MockStaking{
 		Validators: []stakingtypes.Validator{
-			{OperatorAddress: s1, Status: stakingtypes.Bonded},
-			{OperatorAddress: s2, Status: stakingtypes.Bonded},
-			{OperatorAddress: s3, Status: stakingtypes.Bonded},
+			bondingValidator(t, v1),
+			bondingValidator(t, v2),
+			bondingValidator(t, v3),
 		},
-		Powers:    map[string]int64{s1: 10, s2: 30, s3: 10},
-		TotalBond: math.NewInt(50),
+		Powers:     map[string]int64{s1: 10, s2: 30, s3: 10},
+		TotalPower: math.NewInt(50), // consensus power (same units as Powers)
 	}
 	ctx, k := keeper.OracleKeeper(t, mock, &keeper.MockSlashing{})
 	p := types.DefaultParams()
@@ -1987,9 +2035,9 @@ func TestEndBlockAggregatesWeightedMedian(t *testing.T) {
 func TestEndBlockSkipsPairBelowQuorum(t *testing.T) {
 	v1, s1 := makeValidator(t)
 	mock := &keeper.MockStaking{
-		Validators: []stakingtypes.Validator{{OperatorAddress: s1, Status: stakingtypes.Bonded}},
+		Validators: []stakingtypes.Validator{bondingValidator(t, v1)},
 		Powers:     map[string]int64{s1: 10},
-		TotalBond:  math.NewInt(100),
+		TotalPower: math.NewInt(100), // 10/100 < 0.667 quorum
 	}
 	ctx, k := keeper.OracleKeeper(t, mock, &keeper.MockSlashing{})
 	p := types.DefaultParams()
@@ -2012,19 +2060,29 @@ func TestEndBlockSkipsPairBelowQuorum(t *testing.T) {
 Add to `keeper.go`:
 
 ```go
-func (k Keeper) IterateFeedsByPair(ctx context.Context, pair string, fn func(val sdk.ValAddress, price string) bool) error
-func (k Keeper) DeleteAllFeeds(ctx context.Context) error
+// IterateAllFeeds scans 0x01; fn receives (valoper, pair, priceStr). Filter by pair in the callback.
+func (k Keeper) IterateAllFeeds(ctx context.Context, fn func(val sdk.ValAddress, pair, priceStr string) bool) error
+func (k Keeper) DeleteAllFeeds(ctx context.Context) error // collect keys, delete after iter.Close()
 func (k Keeper) GetValidatorSubmittedPairs(ctx context.Context, val sdk.ValAddress) (map[string]struct{}, error)
 ```
 
 Implement `EndBlocker` in `abci.go` with:
 - height % vote_window check
+- `totalPower := stakingKeeper.GetLastTotalPower(ctx)` (consensus power — spec C1b)
 - build valByOper map
-- per-pair aggregation loop (quorum gate, WeightedMedian, SetAggregatedPrice, AppendTWAPEntry, PruneTWAP 24h)
+- `quorumLive := []string{}` (slice in `accept_list` order — never range a map)
+- per-pair aggregation: full `0x01` scan, filter `pair`; quorum via `QuorumMet(submittedPower, totalPower, ...)`
 - **skip slashing sections** initially (comment placeholders)
-- DeleteAllFeeds
+- **do not** call `DeleteAllFeeds` yet (miss logic in Task 20 needs feeds)
 
 Register in `module/module.go` `EndBlock`.
+
+Add imports to `endblock_aggregate_test.go`:
+
+```go
+"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+```
 
 - [ ] **Step 3: Run tests — PASS**
 
@@ -2046,9 +2104,25 @@ git commit -m "feat(oracle): EndBlock quorum-gated aggregation and TWAP append"
 
 4 validators submit 100/100/100/200; outlier_threshold=0.05 → validator with 200 slashed at outlier_slash_rate; MockSlashing.Calls len=1, reason outlier.
 
-- [ ] **Step 2: Add outlier slash loop after aggregation**
+- [ ] **Step 2: Add `slashValidator` helper and outlier loop**
 
-Compare each feed price to UnweightedMedian(rawPrices); if `|price-ref|/ref > threshold`, call `slashValidator` helper (no Jail, distributionHeight = current height, skip power==0).
+```go
+func (k Keeper) slashValidator(ctx context.Context, v stakingtypes.Validator, rate math.LegacyDec, reason string) {
+	consAddr, err := v.GetConsAddr()
+	if err != nil || consAddr == nil {
+		return // skip — never panic (spec M1)
+	}
+	power, err := k.stakingKeeper.GetLastValidatorPower(ctx, sdk.ValAddress(v.OperatorAddress))
+	if err != nil || power == 0 {
+		return
+	}
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	_ = k.slashingKeeper.Slash(sdkCtx, consAddr, rate, power, sdkCtx.BlockHeight())
+	// emit oracle_slash event with reason + fraction
+}
+```
+
+Compare each feed price to `UnweightedMedian(rawPrices)`; if `|price-ref|/ref > threshold`, call `slashValidator` (no Jail). Tests must use `bondingValidator` (ConsensusPubkey set).
 
 - [ ] **Step 3: Run tests — PASS**
 
@@ -2084,7 +2158,9 @@ func (k Keeper) ResetValidatorWindows(ctx context.Context, val sdk.ValAddress) e
 
 EndBlock miss loop per spec §9: for each bonded validator, increment total; if missed any quorum-live pair increment miss; at tumbling boundary evaluate rate, slash if above threshold, reset counters.
 
-`submittedAllLive`: validator submitted feeds for every pair in `quorumLive` set (built via deterministic KV iteration).
+`submittedAllLive`: for each pair in **`quorumLive` slice** (iterate slice, not map), check validator submitted via `GetValidatorSubmittedPairs` (KV iteration over `0x01`).
+
+**EndBlock phase order (final):** aggregation + outlier slash → miss tracking + slash → **`DeleteAllFeeds()` last**.
 
 - [ ] **Step 3: Run tests — PASS**
 
@@ -2109,7 +2185,7 @@ Price, Twap, Params, MissCounter, Feeder queries return expected data / errors.
 
 - [ ] **Step 2: Implement grpc_query.go**
 
-Wire each RPC to keeper methods; map `ErrNoPrice`/`ErrStalePrice` to gRPC status codes.
+Wire each RPC to keeper methods; map `ErrNoPrice`, `ErrStalePrice`, and `ErrNoTWAPData` to appropriate gRPC status codes (`NotFound` / `FailedPrecondition`).
 
 - [ ] **Step 3: Update autocli.go**
 
@@ -2128,8 +2204,8 @@ git commit -m "feat(oracle): add gRPC queries and autocli wiring"
 ## Task 22: Genesis InitGenesis / ExportGenesis
 
 **Files:**
-- Create: `x/oracle/types/genesis.go`
-- Create: `x/oracle/keeper/genesis.go`
+- Replace: `x/oracle/types/genesis.go` (delete Ignite scaffold genesis first)
+- Replace: `x/oracle/keeper/genesis.go` (overwrite scaffold)
 - Create: `x/oracle/keeper/genesis_test.go`
 
 - [ ] **Step 1: Write failing round-trip test**
@@ -2171,14 +2247,31 @@ git commit -m "feat(oracle): genesis import/export with validation"
 
 ---
 
-## Task 23: App wiring verification
+## Task 23: App wiring and depinject
 
 **Files:**
 - Modify: `app/app_config.go` (verify Ignite inserted oracle in endBlockers after IBC, in genesisModuleOrder after staking)
 - Modify: `app/app.go` (OracleKeeper field + depinject)
+- Replace: `x/oracle/module/depinject.go` (wire real staking/slashing keepers + gov authority)
 - Modify: `app/app_test.go`
 
-- [ ] **Step 1: Verify app_config.go ordering**
+- [ ] **Step 1: Update `x/oracle/module/depinject.go`**
+
+Ensure `ProvideModule` constructs the keeper with:
+
+```go
+k := keeper.NewKeeper(
+    in.Cdc,
+    in.StoreService,
+    in.StakingKeeper,   // must satisfy types.StakingKeeper (includes GetLastTotalPower)
+    in.SlashingKeeper,  // must satisfy types.SlashingKeeper
+    authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+)
+```
+
+SDK `x/staking` keeper implements `GetLastTotalPower`; verify compile. Export `OracleKeeper` for Phase 3 injection in `app.go`.
+
+- [ ] **Step 2: Verify app_config.go ordering**
 
 Confirm:
 - `oracletypes.ModuleName` in `endBlockers` at `# stargate/app/endBlockers` (first custom module)
@@ -2187,7 +2280,7 @@ Confirm:
 
 If Ignite missed markers, add manually per spec §4.
 
-- [ ] **Step 2: Update app_test.go**
+- [ ] **Step 3: Update app_test.go**
 
 ```go
 func TestOracleModuleWired(t *testing.T) {
@@ -2203,13 +2296,13 @@ func TestOracleGenesisRoundTrip(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: Run app tests**
+- [ ] **Step 4: Run app tests**
 
 Run: `go test ./app/ -run 'TestOracle|TestNoMint|TestModulesWired|TestGenesis' -v`
 
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add app/
@@ -2313,7 +2406,8 @@ git commit -m "chore(oracle): Phase 1 CI green — lint test build"
 |---|---|
 | D1 Ignite scaffold + adapt | Task 1 |
 | D10 Feeder delegation (0x07/0x08) | Tasks 11–13 |
-| D11 Quorum-gated aggregation | Tasks 15, 18 |
+| D11 Quorum-gated aggregation (`GetLastTotalPower`) | Tasks 8–9, 15, 18 |
+| C1b Quorum power units | Tasks 8–9, 15, 18 |
 | D2 Unweighted outlier reference | Tasks 15, 19 |
 | D3 Tumbling miss window | Task 20 |
 | D4 Miss only vs quorum-live pairs | Task 20 |
@@ -2324,7 +2418,10 @@ git commit -m "chore(oracle): Phase 1 CI green — lint test build"
 | Genesis validation + round-trip | Task 22 |
 | OracleKeeper interface | Tasks 8, 16–17 |
 | Five queries + CLI | Task 21 |
+| depinject keeper wiring | Task 23 |
 | Acceptance gate §11 | Tasks 24–25 |
 | Events §10 | Tasks 12–14, 19–20 |
+| Feed keys length-prefixed | Task 3 |
+| EndBlock phase order | Tasks 18, 20 |
 
-**Doc-sync:** `technical-design.md` §2 is already synced per spec §13 — no separate doc task required unless drift is found during implementation.
+**Doc-sync:** Update `technical-design.md` §2.3 `StakingKeeper` to use `GetLastTotalPower` (not `TotalBondedTokens`) when implementing — spec §13 / C1b.
