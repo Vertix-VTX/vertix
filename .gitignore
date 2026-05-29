@@ -20,3 +20,19 @@ infra/testnet/.gen/
 infra/testnet/mnemonics.env
 infra/testnet/genesis/genesis.json
 infra/testnet/genesis/genesis.sha256
+
+# Phase 9 mainnet genesis builder (stretch) generated + secrets
+infra/mainnet/.gen/
+scripts/mainnet/mnemonics.env
+infra/mainnet/genesis/genesis.json
+infra/mainnet/genesis/genesis.sha256
+
+# Phase 9 testnet v2 generated + secret files
+infra/testnet/v2/.gen/
+infra/testnet/v2/.upgrade-bin/
+infra/testnet/v2/gentxs/*.json
+!infra/testnet/v2/gentxs/.gitkeep
+
+# Phase 9 load-test client binary + results
+infra/loadtest/clients/txflood/txflood
+infra/loadtest/results/

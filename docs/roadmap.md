@@ -300,28 +300,33 @@ DRAFT → ATTESTED → ACTIVE → SETTLED
 
 ## Phase 9 — Public Testnet v2 + Genesis Rehearsal `Month 10–11`
 
-**Goal:** Mainnet-equivalent dry run.
+> **Canonical spec:** [Phase 9 in `full-design-spec.md`](./full-design-spec.md) bundles audit + v2. **Implementation defers audit** to the [parallel audit track](#phase-8--external-security-audit-month-810) (Phase 10 mainnet gate). Phase 9 deliverables: v2 genesis rehearsal, Cosmovisor upgrade, load SLO calibration, registry drafts. Plan: [`docs/plans/2026-05-29-phase-9-testnet-v2-genesis-rehearsal.md`](./plans/2026-05-29-phase-9-testnet-v2-genesis-rehearsal.md).
+
+**Goal:** Mainnet-equivalent operational dry run on `vertix-testnet-2` while v1 stays live.
 
 ### Tasks
-- [ ] Integrate all audit fixes
-- [ ] Chain ID: `vertix-testnet-2`
-- [ ] Cosmovisor end-to-end test: upgrade handler, binary swap, no downtime
-- [ ] Genesis ceremony rehearsal:
-  - Collect `gentx` from all participating mainnet validators
-  - `collect-gentxs`, verify SHA256 of genesis.json
-  - Coordinated start at predetermined block time
-- [ ] Load test: confirm TPS target under realistic oracle + RWA workload on testnet v2 params
-- [ ] Chain Registry preparation:
-  - `chain.json` + `assetlist.json` drafted for `cosmos/chain-registry`
-  - RPC/LCD/gRPC endpoints confirmed
-- [ ] Wallet configs verified: Keplr and Leap `suggestChain` JSON tested
-- [ ] Final documentation review: README, module docs, validator guide, RWA quickstart
+- [ ] **v2 genesis tooling** — `scripts/testnet/v2/` base builder + `collect-gentxs.sh`; published SHA256 in `infra/testnet/v2/genesis/`
+- [ ] **Founder-only v2 stack** — `infra/testnet/v2/docker-compose.yml`; `make testnet-v2-up` (internal gate first)
+- [ ] **Gentx coordinator playbook** — [`docs/testnet-runbook.md`](./testnet-runbook.md) §10 + appendix; coordinated UTC start
+- [ ] **Chain ID:** `vertix-testnet-2`
+- [ ] **`x/upgrade` handler** — plan `v0.2.0-testnet` + store migration (`app/upgrades/v020/`)
+- [ ] **Cosmovisor E2E** — `make testnet-v2-upgrade`; gov proposal → binary swap → resume
+- [ ] **Genesis ceremony (Step 1)** — founder gentx rehearsal; `collect-gentxs`, hash verification, coordinated start
+- [ ] **Load harness + SLO** — module-realistic mix (`infra/loadtest/clients/`, `mix.toml`); calibrate bar in [`docs/load-test.md`](./load-test.md) § Phase 9 SLO
+- [ ] **Chain Registry drafts** — `infra/chain-registry/testnet/` (`chain.json`, `assetlist.json`); mainnet draft (stretch)
+- [ ] **Runbook + onboarding** — v2 launch, internal→public gate, validator join paths, Cosmovisor example
+- [ ] **Public v2 open** — external validators after internal gate; Keplr/Leap tested on live RPC
+- [ ] **Mainnet genesis builder (stretch)** — `scripts/mainnet/build-genesis.sh` + Step 2 validator dry run
+
+**Parallel track (not Phase 9 implementation scope):**
+- [ ] Phase 8 audit: engage auditor, fix Critical/High, publish report — **required before mainnet (Phase 10)**
 
 **Acceptance Criteria:**
-- Testnet v2 stable 2+ weeks post-audit fixes
-- Genesis ceremony rehearsal completed without issues
-- Chain Registry PR drafted and under review
-- Cosmovisor upgrade tested successfully
+- Internal gate passed (gentx, upgrade, invariants, load SLO, 2-week founder stability)
+- Testnet v2 stable 2+ weeks; genesis ceremony Step 1 clean
+- Chain Registry PR drafted (not merged)
+- Cosmovisor upgrade verified; documented path reusable for mainnet
+- Audit fixes integrated before Phase 10 launch (parallel track)
 
 ---
 

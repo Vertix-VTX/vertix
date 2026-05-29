@@ -1,0 +1,41 @@
+{
+  "chainId": "vertix-testnet-2",
+  "chainName": "Vertix Testnet",
+  "rpc": "https://rpc.testnet.vertix.example",
+  "rest": "https://lcd.testnet.vertix.example",
+  "bip44": {
+    "coinType": 118
+  },
+  "bech32Config": {
+    "bech32PrefixAccAddr": "vertix",
+    "bech32PrefixAccPub": "vertixpub",
+    "bech32PrefixValAddr": "vertixvaloper",
+    "bech32PrefixValPub": "vertixvaloperpub",
+    "bech32PrefixConsAddr": "vertixvalcons",
+    "bech32PrefixConsPub": "vertixvalconspub"
+  },
+  "currencies": [
+    {
+      "coinDenom": "VTX",
+      "coinMinimalDenom": "uvtx",
+      "coinDecimals": 6
+    }
+  ],
+  "feeCurrencies": [
+    {
+      "coinDenom": "VTX",
+      "coinMinimalDenom": "uvtx",
+      "coinDecimals": 6,
+      "gasPriceStep": {
+        "low": 0.01,
+        "average": 0.025,
+        "high": 0.04
+      }
+    }
+  ],
+  "stakeCurrency": {
+    "coinDenom": "VTX",
+    "coinMinimalDenom": "uvtx",
+    "coinDecimals": 6
+  }
+}

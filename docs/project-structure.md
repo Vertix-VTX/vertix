@@ -28,11 +28,13 @@ vertix/
 ├── e2e/                      🛠️  interchaintest IBC end-to-end suite (own go.mod)
 ├── infra/                    🛠️  Local devnet, relayer, monitoring, explorer, load-test, testnet
 │   ├── devnet/
-│   ├── testnet/                  Phase 8 — public testnet founder stack + node kit
+│   ├── testnet/                  Phase 8 — public testnet v1 + node kit
+│   │   └── v2/                   Phase 9 — testnet v2 genesis + founder stack
+│   ├── chain-registry/           Phase 9 — draft chain.json / assetlist.json
 │   ├── hermes/
 │   ├── explorer/
 │   ├── monitoring/
-│   └── loadtest/                 Phase 7 — tm-load-test runner config
+│   └── loadtest/                 Phase 7 baseline; Phase 9 module-realistic clients
 ├── docs/                     🛠️  Project documentation (this folder)
 │   ├── full-design-spec.md   Program source of truth (phases 0–10)
 │   ├── specs/                Per-phase design specs (from brainstorms)
@@ -271,17 +273,44 @@ infra/
 ```
 
 ```
-infra/testnet/                      🛠️  Phase 8 — public testnet (`vertix-testnet-1`)
+infra/testnet/                      🛠️  Phase 8 — public testnet v1 (`vertix-testnet-1`)
 ├── .env                            Pinned image tags, chain ID, public endpoints
 ├── mnemonics.env.example           Founder key mnemonics template (NEVER commit real secrets)
 ├── docker-compose.public.yml       Founder validators, sentries, faucet, monitoring
 ├── genesis/                        Published genesis.json + genesis.sha256 + seeds.txt
 ├── node-kit/                       Portable external-validator kit (env, setup-node.sh, systemd)
 ├── faucet/                         Cosmfaucet config
-└── monitoring/                     Prometheus, Grafana, Tenderduty, PANIC, alert rules
+├── monitoring/                     Prometheus, Grafana, Tenderduty, PANIC, alert rules
+└── v2/                             🛠️  Phase 9 — testnet v2 (`vertix-testnet-2`)
+    ├── .env.example                v2 chain ID, image tags, internal endpoints
+    ├── docker-compose.yml          Founder-only stack (internal gate)
+    ├── genesis/                    Published v2 genesis.json + genesis.sha256
+    └── gentxs/                     Submitted gentx JSONs (coordinator collect)
+
+infra/chain-registry/               🛠️  Phase 9 — registry + wallet metadata drafts
+├── testnet/                        vertix-testnet-2 chain.json, assetlist.json, Keplr/Leap JSON
+└── mainnet/                        vertix-1 drafts (stretch, pre-launch)
 ```
 
-Generated at runtime (gitignored): `infra/devnet/.gen/`, `infra/devnet/data/`, `infra/testnet/.gen/`.
+```
+app/upgrades/                       🛠️  Phase 9 — Cosmovisor upgrade handlers
+└── v020/                           Upgrade plan v0.2.0-testnet + store migrations
+```
+
+```
+scripts/testnet/
+├── build-genesis.sh                v1 genesis builder
+└── v2/                             🛠️  Phase 9 — v2 genesis, collect, upgrade, load, verify
+    ├── build-genesis-base.sh
+    ├── build-genesis-internal.sh
+    ├── collect-gentxs.sh
+    ├── prepare-compose-gen.sh
+    ├── upgrade-test.sh
+    ├── integration-verify.sh
+    └── load-test.sh
+```
+
+Generated at runtime (gitignored): `infra/devnet/.gen/`, `infra/devnet/data/`, `infra/testnet/.gen/`, `infra/testnet/v2/.gen/`.
 
 **Devnet workflows (coexist — D5):**
 
@@ -314,7 +343,9 @@ docs/
 │   ├── 2026-05-09-03-fees-module.md
 │   ├── 2026-05-09-04-rwa-module.md
 │   ├── 2026-05-09-05-oracle-feeder-sidecar.md
-│   └── 2026-05-09-06-ibc-devnet.md
+│   ├── 2026-05-09-06-ibc-devnet.md
+│   ├── 2026-05-29-phase-8-public-testnet.md
+│   └── 2026-05-29-phase-9-testnet-v2-genesis-rehearsal.md
 ├── project-overview.md
 ├── architecture.md
 ├── technical-design.md
@@ -325,13 +356,13 @@ docs/
 ├── devnet.md                    🛠️  Phase 6 Docker devnet runbook
 ├── relayer.md                   🛠️  Hermes / rly guide (+ devnet ↔ gaia section)
 ├── gas-audit.md                 🛠️  Phase 7 — hot-path iteration bounds
-├── load-test.md                 🛠️  Phase 7 — tm-load-test TPS/latency baseline
+├── load-test.md                 🛠️  Phase 7 baseline; Phase 9 v2 SLO calibration
 ├── tmkms.md                     🛠️  Phase 7 — TMKMS + sentry topology
 ├── validator-setup.md           🛠️  Phase 7 — validator key separation
-├── validator-onboarding.md      🛠️  Phase 8 — external validator node + feeder join
+├── validator-onboarding.md      🛠️  Phase 8/9 — validator join (v1, v2 gentx, Cosmovisor)
 ├── rwa-quickstart.md            🛠️  Phase 8 — RWA lifecycle walkthrough
 ├── bug-bounty.md                🛠️  Phase 8 — bug bounty scope + severity rubric
-└── testnet-runbook.md           🛠️  Phase 8 — public testnet live-ops runbook
+└── testnet-runbook.md           🛠️  Phase 8 live-ops; Phase 9 v2 + upgrade (§10)
 ```
 
 ---

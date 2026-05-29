@@ -1,0 +1,18 @@
+{
+  "$schema": "../../assetlist.schema.json",
+  "chain_name": "vertix",
+  "assets": [
+    {
+      "description": "The native staking token of Vertix.",
+      "denom_units": [
+        { "denom": "uvtx", "exponent": 0 },
+        { "denom": "vtx", "exponent": 6 }
+      ],
+      "base": "uvtx",
+      "name": "Vertix",
+      "display": "vtx",
+      "symbol": "VTX",
+      "logo_URIs": {}
+    }
+  ]
+}

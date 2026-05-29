@@ -1,0 +1,176 @@
+# Founder-only internal gate stack for vertix-testnet-2 (Phase 9).
+# Chain ID and image tags: infra/testnet/v2/.env
+# Published genesis: infra/testnet/v2/genesis/genesis.json
+# Node config pattern: infra/testnet/node-kit/ (rendered into .gen by make testnet-v2-genesis)
+# Validators run via Cosmovisor (see node-kit/systemd/vertixd.service); upgrade binary staged at
+# infra/testnet/v2/.upgrade-bin/vertixd (mounted into cosmovisor/upgrades/v0.2.0-testnet/bin/).
+name: vertix-testnet-v2
+
+x-cosmovisor-env: &cosmovisor-env
+  DAEMON_NAME: vertixd
+  DAEMON_HOME: /root/.vertixd
+  DAEMON_ALLOW_DOWNLOAD_BINARIES: "false"
+  DAEMON_RESTART_AFTER_UPGRADE: "true"
+
+x-node: &node
+  image: ${VERTIX_IMAGE}
+  restart: unless-stopped
+  networks: [testnet]
+
+x-node-cosmovisor: &node-cosmovisor
+  <<: *node
+  environment:
+    <<: *cosmovisor-env
+  command: ["cosmovisor", "run", "start", "--home", "/root/.vertixd"]
+  volumes:
+    - ./.upgrade-bin/vertixd:/root/.vertixd/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd:ro
+
+services:
+  init:
+    image: ${VERTIX_IMAGE}
+    networks: [testnet]
+    volumes:
+      - ./.gen:/gen:ro
+      - ./genesis/genesis.json:/published/genesis.json:ro
+      - f1data:/f1
+      - f2data:/f2
+      - f3data:/f3
+      - sentry1data:/s1
+      - sentry2data:/s2
+      - sentry3data:/s3
+      - seeddata:/seed
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        init_home() {
+          home="$$1"
+          rm -rf "$$home"/* && mkdir -p "$$home/config" "$$home/data"
+          cp -r "/gen/$$2/config/"* "$$home/config/"
+          cp /published/genesis.json "$$home/config/genesis.json"
+          echo '{"height":"0","round":0,"step":0}' > "$$home/data/priv_validator_state.json"
+          export DAEMON_HOME="$$home"
+          cosmovisor init /usr/local/bin/vertixd
+          mkdir -p "$$home/cosmovisor/upgrades/v0.2.0-testnet/bin"
+        }
+        for i in 1 2 3; do init_home "/f$$i" "founder$$i"; done
+        for role in sentry1 sentry2 sentry3 seed; do
+          case "$$role" in sentry1) dest=/s1;; sentry2) dest=/s2;; sentry3) dest=/s3;; seed) dest=/seed;; esac
+          init_home "$$dest" "$$role"
+        done
+        echo "init: seeded founder, sentry, and seed homes with cosmovisor (chain_id=${CHAIN_ID})"
+
+  founder1:
+    <<: *node-cosmovisor
+    depends_on: { init: { condition: service_completed_successfully } }
+    volumes:
+      - f1data:/root/.vertixd
+      - ./.upgrade-bin/vertixd:/root/.vertixd/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd:ro
+    ports: ["26670:26660"]
+
+  founder2:
+    <<: *node-cosmovisor
+    depends_on: { init: { condition: service_completed_successfully } }
+    volumes:
+      - f2data:/root/.vertixd
+      - ./.upgrade-bin/vertixd:/root/.vertixd/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd:ro
+    ports: ["26671:26660"]
+
+  founder3:
+    <<: *node-cosmovisor
+    depends_on: { init: { condition: service_completed_successfully } }
+    volumes:
+      - f3data:/root/.vertixd
+      - ./.upgrade-bin/vertixd:/root/.vertixd/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd:ro
+    ports: ["26672:26660"]
+
+  sentry1:
+    <<: *node-cosmovisor
+    depends_on: { founder1: { condition: service_started } }
+    volumes:
+      - sentry1data:/root/.vertixd
+      - ./.upgrade-bin/vertixd:/root/.vertixd/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd:ro
+    ports: ["26680:26660"]
+
+  sentry2:
+    <<: *node-cosmovisor
+    depends_on: { founder2: { condition: service_started } }
+    volumes:
+      - sentry2data:/root/.vertixd
+      - ./.upgrade-bin/vertixd:/root/.vertixd/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd:ro
+    ports: ["26681:26660"]
+
+  sentry3:
+    <<: *node-cosmovisor
+    depends_on: { founder3: { condition: service_started } }
+    volumes:
+      - sentry3data:/root/.vertixd
+      - ./.upgrade-bin/vertixd:/root/.vertixd/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd:ro
+    ports: ["26682:26660"]
+
+  seed:
+    <<: *node-cosmovisor
+    depends_on:
+      sentry1: { condition: service_started }
+      sentry2: { condition: service_started }
+      sentry3: { condition: service_started }
+    volumes:
+      - seeddata:/root/.vertixd
+      - ./.upgrade-bin/vertixd:/root/.vertixd/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd:ro
+    ports: ["26686:26656"]
+
+  feeder1:
+    <<: *node
+    depends_on: { founder1: { condition: service_started } }
+    command: ["vertix-feeder", "--config", "/cfg/feeder1.yaml"]
+    volumes: ["./.gen/feeder:/cfg:ro", "./.gen/feeder/keyring:/keyring:ro"]
+    ports: ["9201:9200"]
+
+  feeder2:
+    <<: *node
+    depends_on: { founder2: { condition: service_started } }
+    command: ["vertix-feeder", "--config", "/cfg/feeder2.yaml"]
+    volumes: ["./.gen/feeder:/cfg:ro", "./.gen/feeder/keyring:/keyring:ro"]
+    ports: ["9202:9200"]
+
+  feeder3:
+    <<: *node
+    depends_on: { founder3: { condition: service_started } }
+    command: ["vertix-feeder", "--config", "/cfg/feeder3.yaml"]
+    volumes: ["./.gen/feeder:/cfg:ro", "./.gen/feeder/keyring:/keyring:ro"]
+    ports: ["9203:9200"]
+
+  prometheus:
+    image: ${PROMETHEUS_IMAGE}
+    restart: unless-stopped
+    networks: [testnet]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+    ports: ["9096:9090"]
+
+  grafana:
+    image: ${GRAFANA_IMAGE}
+    restart: unless-stopped
+    networks: [testnet]
+    depends_on: { prometheus: { condition: service_started } }
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-changeme}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    volumes:
+      - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3001:3000"]
+
+networks:
+  testnet: { name: vertix-testnet-v2 }
+
+volumes:
+  f1data: {}
+  f2data: {}
+  f3data: {}
+  sentry1data: {}
+  sentry2data: {}
+  sentry3data: {}
+  seeddata: {}

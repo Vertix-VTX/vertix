@@ -41,10 +41,17 @@ All design and process docs live in [`docs/`](./docs/). Always check these befor
 | [`docs/tokenomics.md`](./docs/tokenomics.md) | Touching genesis, vesting, fees, supply |
 | [`docs/roadmap.md`](./docs/roadmap.md) | Scope / sequencing / milestone questions |
 | [`docs/relayer.md`](./docs/relayer.md) | Setting up Hermes/`rly` to relay ICS-20 (VTX, `rwa/*`) |
-| [`docs/testnet-runbook.md`](./docs/testnet-runbook.md) | Public testnet live-ops, incidents, Phase 9 gate |
+| [`docs/testnet-runbook.md`](./docs/testnet-runbook.md) | Public testnet live-ops (v1 + v2 §10), incidents, promotion gate |
 | [`docs/validator-onboarding.md`](./docs/validator-onboarding.md) | External validator + feeder join contract |
 | [`docs/rwa-quickstart.md`](./docs/rwa-quickstart.md) | RWA lifecycle walkthrough on testnet |
 | [`docs/bug-bounty.md`](./docs/bug-bounty.md) | Bug bounty scope + severity rubric |
+| [`docs/load-test.md`](./docs/load-test.md) | TPS baseline (Phase 7) + v2 SLO calibration (Phase 9) |
+
+### Chain Registry (Phase 9 drafts)
+| Path | Purpose |
+|---|---|
+| [`infra/chain-registry/testnet/`](./infra/chain-registry/testnet/) | `vertix-testnet-2` — `chain.json`, `assetlist.json`, wallet suggestChain JSON |
+| [`infra/chain-registry/mainnet/`](./infra/chain-registry/mainnet/) | `vertix-1` pre-launch drafts (stretch) |
 
 ### Source of Truth
 | Path | Purpose |
@@ -95,8 +102,9 @@ vertix/
 ├── proto/vertix/    Protobuf source of truth
 ├── testutil/        Shared test helpers
 ├── e2e/             interchaintest IBC E2E (own go.mod)
-├── infra/           Devnet, hermes, monitoring, explorer
-│   └── testnet/     Phase 8 — infra/testnet/ public stack + node kit
+├── infra/           Devnet, hermes, monitoring, explorer, chain-registry
+│   └── testnet/     Phase 8 v1 stack + node kit; Phase 9 v2/ subpath
+├── app/upgrades/    Cosmovisor upgrade handlers (e.g. v020/)
 ├── docs/            All design + plans + this guide
 ├── .github/workflows/ci.yml
 ├── Makefile

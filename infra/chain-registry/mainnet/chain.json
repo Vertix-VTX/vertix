@@ -1,0 +1,48 @@
+{
+  "$schema": "../../chain.schema.json",
+  "chain_name": "vertix",
+  "status": "upcoming",
+  "network_type": "mainnet",
+  "stage": "pre-launch",
+  "pretty_name": "Vertix",
+  "chain_type": "cosmos",
+  "chain_id": "vertix-1",
+  "bech32_prefix": "vertix",
+  "daemon_name": "vertixd",
+  "node_home": "$HOME/.vertixd",
+  "key_algos": ["secp256k1"],
+  "slip44": 118,
+  "fees": {
+    "fee_tokens": [
+      {
+        "denom": "uvtx",
+        "low_gas_price": 0.01,
+        "average_gas_price": 0.025,
+        "high_gas_price": 0.04
+      }
+    ]
+  },
+  "staking": {
+    "staking_tokens": [{ "denom": "uvtx" }]
+  },
+  "codebase": {
+    "git_repo": "https://github.com/vertix-network/vertix",
+    "recommended_version": "v1.0.0",
+    "language": { "type": "go", "version": "1.22" }
+  },
+  "apis": {
+    "rpc": [
+      {
+        "address": "https://rpc.vertix.example",
+        "provider": "vertix"
+      }
+    ],
+    "rest": [
+      {
+        "address": "https://lcd.vertix.example",
+        "provider": "vertix"
+      }
+    ]
+  },
+  "keywords": ["rwa", "oracle"]
+}

@@ -129,3 +129,17 @@ For Phase 9, re-run with the same parameter file and document any change in vali
 - Devnet runbook: [`docs/devnet.md`](./devnet.md)
 - Harness README: [`infra/loadtest/README.md`](../infra/loadtest/README.md)
 - Phase 7 plan: [`docs/plans/2026-05-29-phase-7-security-hardening.md`](./plans/2026-05-29-phase-7-security-hardening.md) (Task 14)
+
+## Phase 9 SLO (testnet v2)
+
+> Placeholder — **2026-05-29T17:03Z**: stack not running (run: make testnet-v2-up)
+
+| Item | Value |
+|------|--------|
+| Chain ID | `vertix-testnet-2` |
+| Mix | 70% bank / 20% oracle / 10% RWA |
+| Peak sustained TPS | _not measured_ |
+| SLO bar (80% peak) | _pending calibration_ |
+| Gate | **PENDING** |
+
+Re-run when the stack is up: `make testnet-v2-load-test`

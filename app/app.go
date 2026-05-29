@@ -73,6 +73,7 @@ import (
 	rwamodulekeeper "github.com/vertix-network/vertix/x/rwa/keeper"
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 
+	v020 "github.com/vertix-network/vertix/app/upgrades/v020"
 	"github.com/vertix-network/vertix/docs"
 )
 
@@ -260,6 +261,13 @@ func New(
 
 	// build app
 	app.App = appBuilder.Build(db, traceStore, baseAppOptions...)
+
+	if err := v020.RegisterUpgradeHandlers(
+		&v020.App{ModuleManager: app.ModuleManager, Configurator: app.Configurator()},
+		app.UpgradeKeeper,
+	); err != nil {
+		return nil, err
+	}
 
 	// register legacy modules
 	if err := app.registerIBCModules(appOpts); err != nil {

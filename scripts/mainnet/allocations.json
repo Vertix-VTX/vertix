@@ -1,0 +1,124 @@
+{
+  "$schema": "tokenomics",
+  "description": "Mainnet genesis allocation per docs/tokenomics.md — Phase 10 template (stretch dry-run).",
+  "chain_id": "vertix-1",
+  "denom": "uvtx",
+  "display_denom": "vtx",
+  "total_uvtx": "21000000000000",
+  "total_vtx": 21000000,
+  "tge_unix": 1749427200,
+  "tge_note": "Placeholder TGE; override with MAINNET_TGE_UNIX before final genesis ceremony.",
+  "allocations": [
+    {
+      "id": "team",
+      "name": "Team & Core Contributors",
+      "percent": 22,
+      "amount_uvtx": "4620000000000",
+      "amount_vtx": 4620000,
+      "key_name": "mainnet-team",
+      "vesting_type": "PeriodicVestingAccount",
+      "vesting": {
+        "cliff_seconds": 31536000,
+        "linear_period_seconds": 2628000,
+        "linear_periods": 36,
+        "note": "12mo cliff (start_time=TGE+cliff), then 36 monthly periods (48mo total)"
+      }
+    },
+    {
+      "id": "foundation",
+      "name": "Foundation / Treasury",
+      "percent": 20,
+      "amount_uvtx": "4200000000000",
+      "amount_vtx": 4200000,
+      "key_name": "mainnet-foundation",
+      "vesting_type": "PeriodicVestingAccount",
+      "vesting": {
+        "cliff_seconds": 31536000,
+        "linear_period_seconds": 7884000,
+        "linear_periods": 16,
+        "note": "12mo cliff (start_time=TGE+cliff), then 16 quarterly releases (60mo total)"
+      }
+    },
+    {
+      "id": "strategic_investors",
+      "name": "Strategic Investors",
+      "percent": 13,
+      "amount_uvtx": "2730000000000",
+      "amount_vtx": 2730000,
+      "key_name": "mainnet-investors",
+      "vesting_type": "PeriodicVestingAccount",
+      "vesting": {
+        "cliff_seconds": 15768000,
+        "linear_period_seconds": 2628000,
+        "linear_periods": 18,
+        "note": "6mo cliff (start_time=TGE+cliff), then 18 monthly periods (24mo total)"
+      }
+    },
+    {
+      "id": "ecosystem",
+      "name": "Ecosystem & Grants",
+      "percent": 18,
+      "amount_uvtx": "3780000000000",
+      "amount_vtx": 3780000,
+      "key_name": "mainnet-ecosystem",
+      "vesting_type": "PeriodicVestingAccount",
+      "vesting": {
+        "cliff_seconds": 0,
+        "linear_period_seconds": 7884000,
+        "linear_periods": 16,
+        "note": "No cliff; quarterly releases over 48 months from TGE"
+      }
+    },
+    {
+      "id": "validator_pool",
+      "name": "Validator Incentives Pool",
+      "percent": 12,
+      "amount_uvtx": "2520000000000",
+      "amount_vtx": 2520000,
+      "key_name": "mainnet-validator-pool",
+      "vesting_type": "ContinuousVestingAccount",
+      "vesting": {
+        "duration_seconds": 157680000,
+        "note": "Linear over 60 months from TGE (no cliff)"
+      }
+    },
+    {
+      "id": "public_liquidity",
+      "name": "Public Liquidity",
+      "percent": 8,
+      "amount_uvtx": "1680000000000",
+      "amount_vtx": 1680000,
+      "vesting_type": "split",
+      "accounts": [
+        {
+          "key_name": "mainnet-liquidity-tge",
+          "amount_uvtx": "840000000000",
+          "amount_vtx": 840000,
+          "vesting_type": "BaseAccount",
+          "note": "50% at TGE for DEX liquidity"
+        },
+        {
+          "key_name": "mainnet-liquidity-reserve",
+          "amount_uvtx": "840000000000",
+          "amount_vtx": 840000,
+          "vesting_type": "ContinuousVestingAccount",
+          "vesting": {
+            "duration_seconds": 15768000,
+            "note": "Remaining 50% linear over 6 months"
+          }
+        }
+      ]
+    },
+    {
+      "id": "community_airdrop",
+      "name": "Community Airdrop",
+      "percent": 7,
+      "amount_uvtx": "1470000000000",
+      "amount_vtx": 1470000,
+      "key_name": "mainnet-airdrop",
+      "vesting_type": "BaseAccount",
+      "vesting": null,
+      "note": "Fully claimable at genesis; 6-month claim window enforced off-chain / Phase 10"
+    }
+  ]
+}

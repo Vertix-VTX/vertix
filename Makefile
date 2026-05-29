@@ -210,6 +210,27 @@ testnet-tag-image:
 testnet-genesis: devnet-docker-build testnet-tag-image
 	@./scripts/testnet/build-genesis.sh
 
+testnet-v2-genesis-base: devnet-docker-build testnet-tag-image
+	@./scripts/testnet/v2/build-genesis-base.sh
+
+testnet-v2-genesis: testnet-v2-genesis-base
+	@./scripts/testnet/v2/build-genesis-internal.sh
+	@./scripts/testnet/v2/collect-gentxs.sh
+	@./scripts/testnet/v2/prepare-compose-gen.sh
+
+TESTNET_V2_DIR ?= infra/testnet/v2
+TESTNET_V2_COMPOSE ?= docker compose --env-file $(TESTNET_V2_DIR)/.env -f $(TESTNET_V2_DIR)/docker-compose.yml
+
+testnet-v2-up: testnet-v2-genesis
+	@echo "--> Starting founder-only v2 stack (internal gate)"
+	@$(TESTNET_V2_COMPOSE) up -d
+
+testnet-v2-down:
+	@$(TESTNET_V2_COMPOSE) down -v
+
+testnet-v2-upgrade:
+	@./scripts/testnet/v2/upgrade-test.sh
+
 testnet-up: testnet-genesis
 	@echo "--> Starting public testnet founder stack (validators, sentries, feeders)"
 	@$(TESTNET_COMPOSE) up -d
@@ -244,7 +265,13 @@ testnet-demo:
 testnet-integration-verify:
 	@./scripts/testnet/integration-verify.sh
 
-.PHONY: testnet-tag-image testnet-genesis testnet-up testnet-up-faucet testnet-up-monitoring testnet-up-tenderduty testnet-up-explorer testnet-up-all testnet-down testnet-join-smoke testnet-demo testnet-integration-verify
+testnet-v2-verify:
+	@./scripts/testnet/v2/integration-verify.sh
+
+testnet-v2-load-test:
+	@./scripts/testnet/v2/load-test.sh
+
+.PHONY: testnet-tag-image testnet-genesis testnet-v2-genesis-base testnet-v2-genesis testnet-v2-up testnet-v2-down testnet-v2-upgrade testnet-v2-verify testnet-v2-load-test testnet-up testnet-up-faucet testnet-up-monitoring testnet-up-tenderduty testnet-up-explorer testnet-up-all testnet-down testnet-join-smoke testnet-demo testnet-integration-verify
 
 ###################
 ###  Load test  ###

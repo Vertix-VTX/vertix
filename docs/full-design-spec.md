@@ -349,7 +349,7 @@ When this spec disagrees with another doc on **phase order or cross-phase contra
   force-settles the asset and routes the bond to the community pool. See
   `specs/2026-05-29-phase-3-rwa-module-design.md` D7.
 - **Provider set + weighting** (Phase 4): **Resolved** — CoinGecko + Binance + a Static provider (Static bootstraps VTX:USD until listing); disagreement handled by a configurable cross-source median with strict defaults (min_providers=2, max_deviation=0.10, max_quote_age), skipping under-covered pairs. See [specs/2026-05-29-phase-4-feeder-sidecar-design.md](./specs/2026-05-29-phase-4-feeder-sidecar-design.md) §2 (D2/D3).
-- **TPS target** (Phases 7/9): **resolved for Phase 7 = baseline-only** — measured throughput/latency recorded in [`docs/load-test.md`](./load-test.md); no pass/fail threshold. The concrete throughput/latency **bar** load tests must clear remains a **Phase 9** item.
+- **TPS target** (Phases 7/9): **resolved for Phase 7 = baseline-only** — measured throughput/latency recorded in [`docs/load-test.md`](./load-test.md); no pass/fail threshold. **Phase 9** calibrates the concrete pass/fail bar on `vertix-testnet-2` (module-realistic 70/20/10 bank/oracle/RWA mix) and documents measured peak TPS, p99 latency, and SLO gate in [`docs/load-test.md`](./load-test.md) § "Phase 9 SLO (testnet v2)" — see [Phase 9 design spec](./specs/2026-05-29-phase-9-testnet-v2-genesis-rehearsal-design.md) §4.4.
 - **Day-1 IBC channel set** (Phase 10): final confirmation beyond Cosmos Hub.
 
 Each is resolved when its phase is brainstormed; resolutions update the relevant phase section and `technical-design.md`.

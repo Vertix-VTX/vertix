@@ -1,8 +1,22 @@
 # Validator Onboarding — Public Testnet
 
-**Chain:** `vertix-testnet-1` · **Related:** [Validator setup](./validator-setup.md) · [TMKMS](./tmkms.md) · [Node kit](../infra/testnet/node-kit/) · [Testnet runbook](./testnet-runbook.md)
+**Chain:** `vertix-testnet-1` (v1) · `vertix-testnet-2` (v2, Phase 9) · **Related:** [Validator setup](./validator-setup.md) · [TMKMS](./tmkms.md) · [Node kit](../infra/testnet/node-kit/) · [Testnet runbook](./testnet-runbook.md) · [Phase 9 design spec](./specs/2026-05-29-phase-9-testnet-v2-genesis-rehearsal-design.md)
 
-This document is the **onboarding contract** for external validators joining `vertix-testnet-1`. Follow every step in order; skipping genesis verification or feeder setup will cause join failures or oracle slashes.
+This document is the **onboarding contract** for external validators joining Vertix public testnets. Follow every step in order; skipping genesis verification or feeder setup will cause join failures or oracle slashes.
+
+---
+
+## Join paths (v1 vs v2)
+
+| Network | Phase | Join method | When |
+|---------|-------|-------------|------|
+| `vertix-testnet-1` | Phase 8 (v1) | Post-genesis `MsgCreateValidator` | Any time after v1 is public |
+| `vertix-testnet-2` | Phase 9 ceremony | Pre-launch `genesis gentx` submitted to coordinator | Before v2 coordinated start only |
+| `vertix-testnet-2` | Phase 9 post-open | Post-genesis `MsgCreateValidator` | After founders open v2 publicly |
+
+- **v1:** §§3–10 below (`chain-id vertix-testnet-1`).
+- **v2 ceremony:** Coordinator distributes base genesis; you submit `gentx-<moniker>.json` before the deadline. See [testnet runbook §10.2](./testnet-runbook.md#102-gentx-coordinator-playbook) and [`scripts/testnet/v2/`](../scripts/testnet/v2/).
+- **v2 post-open:** Same flow as v1 but override node-kit `env` for v2 chain ID and genesis (§4.1). Use `vertix-testnet-2` in all `vertixd` commands.
 
 ---
 
@@ -79,6 +93,24 @@ VERTIXD_HOME=/home/vertix/.vertixd
 ```
 
 See [`infra/testnet/node-kit/README.md`](../infra/testnet/node-kit/README.md) for field descriptions.
+
+### 4.1 Node kit env overrides for v2
+
+For `vertix-testnet-2` (post-open join or ceremony node prep), set at minimum:
+
+```bash
+CHAIN_ID=vertix-testnet-2
+GENESIS_URL=https://<founder-host>/testnet-v2/genesis.json
+GENESIS_SHA256=<from infra/testnet/v2/genesis/genesis.sha256>
+SEEDS=<v2-seed-node-id>@<host>:26656
+STATESYNC_RPC=<v2-public-rpc>:26657
+STATESYNC_TRUST_HEIGHT=<recent-height>
+STATESYNC_TRUST_HASH=<block-hash-at-height>
+```
+
+Published artifacts live under `infra/testnet/v2/genesis/` after `make testnet-v2-genesis`. **Never** reuse v1 `GENESIS_URL` or hash for v2.
+
+During the **internal gate**, founders use the private v2 Compose stack (`make testnet-v2-up`); external operators wait until [runbook §10.4](./testnet-runbook.md#104-internal--public-open-gate) passes.
 
 ---
 
@@ -252,3 +284,53 @@ File issues using the matching GitHub template:
 - **Genesis / state-sync / create-validator / feeder / monitoring** → [Onboarding problem](../.github/ISSUE_TEMPLATE/onboarding_problem.yml)
 - **Oracle feed stalls or provider errors** → [Feed incident](../.github/ISSUE_TEMPLATE/feed_incident.yml)
 - **Module bugs** → [Bug report](../.github/ISSUE_TEMPLATE/bug_report.yml)
+
+---
+
+## 14. Cosmovisor upgrade (v0.2.0-testnet)
+
+When the chain schedules upgrade plan **`v0.2.0-testnet`**, every validator must stage the new binary before the upgrade height. This proves the Cosmovisor path used for all future upgrades (Phase 9 rehearsal on `vertix-testnet-2`).
+
+**Environment:**
+
+```bash
+export DAEMON_NAME=vertixd
+export DAEMON_HOME=/home/vertix/.vertixd   # match your node-kit VERTIXD_HOME
+```
+
+**Stage binary (before upgrade height):**
+
+```bash
+mkdir -p "$DAEMON_HOME/cosmovisor/upgrades/v0.2.0-testnet/bin"
+cp /path/to/vertixd-v0.2.x "$DAEMON_HOME/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd"
+chmod +x "$DAEMON_HOME/cosmovisor/upgrades/v0.2.0-testnet/bin/vertixd"
+```
+
+**Expected layout:**
+
+```
+$DAEMON_HOME/
+├── cosmovisor/
+│   ├── current -> genesis/          # symlink managed by Cosmovisor
+│   ├── genesis/bin/vertixd            # binary at chain start
+│   └── upgrades/
+│       └── v0.2.0-testnet/
+│           └── bin/vertixd          # must exist before upgrade height
+├── data/
+└── config/
+```
+
+**At upgrade height:** CometBFT halts → Cosmovisor swaps `current` to `upgrades/v0.2.0-testnet/bin` → `x/upgrade` handler runs `RunMigrations` → chain resumes.
+
+**Verify after upgrade:**
+
+```bash
+curl -s localhost:26657/status | jq '.result.sync_info | {height, catching_up}'
+# Height should advance; catching_up false after sync
+curl -s localhost:9200/metrics | grep feeds_submitted_total
+# Feeder counter should resume within ~2 vote windows
+```
+
+**Snapshot before upgrade:** Back up `$DAEMON_HOME/data` (or use your volume snapshot policy). If migration or swap fails, restore the snapshot and coordinate a new upgrade height with founders — do not restart with a broken binary.
+
+Founders run the automated rehearsal: `make testnet-v2-upgrade`. Operators follow the same binary path documented in [testnet runbook §10.3](./testnet-runbook.md#103-cosmovisor-upgrade-procedure).
