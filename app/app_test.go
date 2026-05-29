@@ -14,6 +14,7 @@ import (
 	"github.com/vertix-network/vertix/app"
 	feestypes "github.com/vertix-network/vertix/x/fees/types"
 	oracletypes "github.com/vertix-network/vertix/x/oracle/types"
+	rwatypes "github.com/vertix-network/vertix/x/rwa/types"
 )
 
 // newTestApp builds an in-memory App for wiring assertions.
@@ -90,4 +91,25 @@ func TestFeesModuleAccountHasBurner(t *testing.T) {
 	require.Contains(t, perms, authtypes.Burner)
 	require.NotContains(t, perms, authtypes.Minter)
 	require.NotContains(t, perms, authtypes.Staking)
+}
+
+func TestRWAModuleWired(t *testing.T) {
+	a := newTestApp(t)
+	_, ok := a.ModuleManager.Modules[rwatypes.ModuleName]
+	require.True(t, ok, "x/rwa must be wired")
+	require.NotNil(t, a.RwaKeeper)
+}
+
+func TestRWAModuleAccountHasMinterBurner(t *testing.T) {
+	newTestApp(t)
+	perms, ok := app.GetMaccPerms()[rwatypes.ModuleName]
+	require.True(t, ok, "x/rwa module account must be configured")
+	require.Contains(t, perms, authtypes.Minter)
+	require.Contains(t, perms, authtypes.Burner)
+}
+
+func TestRWAGenesisRoundTrip(t *testing.T) {
+	a := newTestApp(t)
+	genState := a.DefaultGenesis()
+	require.Contains(t, genState, rwatypes.ModuleName)
 }

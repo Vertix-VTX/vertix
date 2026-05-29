@@ -44,10 +44,13 @@ import (
 
 	feesmodulev1 "github.com/vertix-network/vertix/api/vertix/fees/module"
 	oraclemodulev1 "github.com/vertix-network/vertix/api/vertix/oracle/module"
+	rwamodulev1 "github.com/vertix-network/vertix/api/vertix/rwa/module"
 	_ "github.com/vertix-network/vertix/x/fees/module" // import for side-effects
 	feesmoduletypes "github.com/vertix-network/vertix/x/fees/types"
 	_ "github.com/vertix-network/vertix/x/oracle/module" // import for side-effects
 	oraclemoduletypes "github.com/vertix-network/vertix/x/oracle/types"
+	_ "github.com/vertix-network/vertix/x/rwa/module" // import for side-effects
+	rwamoduletypes "github.com/vertix-network/vertix/x/rwa/types"
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 )
 
@@ -66,6 +69,7 @@ var (
 		distrtypes.ModuleName,
 		stakingtypes.ModuleName,
 		oraclemoduletypes.ModuleName,
+		rwamoduletypes.ModuleName,
 		slashingtypes.ModuleName,
 		govtypes.ModuleName,
 		crisistypes.ModuleName,
@@ -122,6 +126,7 @@ var (
 		ibcfeetypes.ModuleName,
 		// chain modules
 		oraclemoduletypes.ModuleName,
+		rwamoduletypes.ModuleName,
 		feesmoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/endBlockers
 	}
@@ -142,6 +147,7 @@ var (
 		{Account: ibcfeetypes.ModuleName},
 		{Account: icatypes.ModuleName},
 		{Account: feesmoduletypes.ModuleName, Permissions: []string{authtypes.Burner}},
+		{Account: rwamoduletypes.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner}},
 		// this line is used by starport scaffolding # stargate/app/maccPerms
 	}
 
@@ -263,6 +269,10 @@ var (
 			{
 				Name:   feesmoduletypes.ModuleName,
 				Config: appconfig.WrapAny(&feesmodulev1.Module{}),
+			},
+			{
+				Name:   rwamoduletypes.ModuleName,
+				Config: appconfig.WrapAny(&rwamodulev1.Module{}),
 			},
 			// this line is used by starport scaffolding # stargate/app/moduleConfig
 		},

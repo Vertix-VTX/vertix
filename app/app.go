@@ -70,6 +70,7 @@ import (
 	feesmodulekeeper "github.com/vertix-network/vertix/x/fees/keeper"
 	oraclemodulekeeper "github.com/vertix-network/vertix/x/oracle/keeper"
 
+	rwamodulekeeper "github.com/vertix-network/vertix/x/rwa/keeper"
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 
 	"github.com/vertix-network/vertix/docs"
@@ -137,6 +138,7 @@ type App struct {
 
 	OracleKeeper oraclemodulekeeper.Keeper
 	FeesKeeper   feesmodulekeeper.Keeper
+	RwaKeeper    rwamodulekeeper.Keeper
 	// this line is used by starport scaffolding # stargate/app/keeperDeclaration
 
 	// simulation manager
@@ -241,10 +243,16 @@ func New(
 		&app.FeeGrantKeeper,
 		&app.OracleKeeper,
 		&app.FeesKeeper,
+		&app.RwaKeeper,
 		// this line is used by starport scaffolding # stargate/app/keeperDefinition
 	); err != nil {
 		panic(err)
 	}
+
+	// Enforce rwa/* transfer restrictions on every bank SendCoins path
+	// (MsgSend, MsgMultiSend, authz, IBC escrow). Must run on the concrete
+	// bank keeper after depinject populates both keepers (spec D5).
+	app.BankKeeper.AppendSendRestriction(app.RwaKeeper.SendRestriction)
 
 	// add to default baseapp options
 	// enable optimistic execution

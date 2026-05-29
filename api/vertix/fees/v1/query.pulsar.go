@@ -818,6 +818,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// QueryParamsRequest is the request type for Query/Params.
 type QueryParamsRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -844,6 +845,7 @@ func (*QueryParamsRequest) Descriptor() ([]byte, []int) {
 	return file_vertix_fees_v1_query_proto_rawDescGZIP(), []int{0}
 }
 
+// QueryParamsResponse is the response type for Query/Params.
 type QueryParamsResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

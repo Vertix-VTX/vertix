@@ -265,11 +265,11 @@ Once `SETTLED`, the asset is terminal. Bond is returned to issuer on clean settl
 
 ```
 proto/vertix/rwa/v1/
-├── types.proto    AssetRecord, AssetStatus, TransferRestriction, RWAParams
+├── types.proto    AssetRecord, AssetStatus, RWAParams
 ├── tx.proto       MsgRegisterAsset, MsgAttestAsset, MsgMintRWA, MsgTransferRWA,
-│                  MsgSettleRWA, MsgUpdateRestrictions, MsgUpdateParams
-├── query.proto    GetAsset, AssetsByIssuer, GetParams
-└── genesis.proto  GenesisState
+│                  MsgSettleRWA, MsgUpdateRestrictions, MsgSlashBond, MsgUpdateParams
+├── query.proto    GetAsset, AssetsByIssuer, GetRestrictions, GetParams
+└── genesis.proto  GenesisState (params, assets, restriction entries)
 ```
 
 Key types:
@@ -284,13 +284,20 @@ enum AssetStatus {
 }
 
 message AssetRecord {
-  string      asset_id    = 1;
-  string      issuer      = 2;
-  string      name        = 3;
-  string      description = 4;
-  AssetStatus status      = 5;
-  string      oracle_pair = 6;
-  // ... bond, denom, restriction, timestamps
+  string      asset_id        = 1;   // slug; denom = "rwa/" + asset_id
+  string      issuer          = 2;
+  string      name            = 3;
+  string      description     = 4;
+  AssetStatus status          = 5;
+  string      oracle_pair     = 6;   // "BASE:QUOTE"
+  string      denom           = 7;   // "rwa/{asset_id}" (derived, stored for convenience)
+  string      bond            = 8;   // uvtx locked (>= MinIssuerBond)
+  string      notional_minted = 9;   // uvtx; == minted rwa/{id} units (1:1)
+  bool        allow_all       = 10;  // transfer-restriction mode
+  string      attested_price  = 11;  // oracle snapshot at attest
+  google.protobuf.Timestamp attested_at = 12;
+  google.protobuf.Timestamp created_at  = 13;
+  google.protobuf.Timestamp settled_at  = 14;
 }
 
 message RWAParams {
@@ -299,6 +306,8 @@ message RWAParams {
   string settle_fee_rate  = 3; // LegacyDec, "0.001"
 }
 ```
+
+Allow/deny membership is stored in a separate keyed store (`RestrictionEntry` per asset + address), not embedded in `AssetRecord`.
 
 ### 3.4 Keeper Boundaries
 
@@ -318,6 +327,8 @@ settle_fee = floor(notional × SettleFeeRate)
 
 Fees are paid in `uvtx` and sent to `auth.FeeCollectorName`. They are then split by `x/fees` at the next `EndBlock` (40% burn / 60% distribute).
 
+Notional is declared in `uvtx`; minting is 1:1 (`rwa/{id}` units == notional). The oracle is read only at attestation, not at mint — the fee is a deterministic function of the message (Phase 3 spec D2).
+
 ### 3.6 Transfer Restriction Enforcement
 
 Every `MsgTransferRWA` runs:
@@ -331,7 +342,14 @@ require sender ∉ restriction.Denylist
 require recipient ∉ restriction.Denylist
 ```
 
-Plain `x/bank.MsgSend` of `rwa/*` denoms is blocked by an ante decorator that defers to the same logic — issuers cannot be bypassed via the standard bank transfer path.
+Plain `x/bank.MsgSend` (and `MsgMultiSend`, authz-wrapped sends, and IBC transfer
+escrow) of `rwa/*` denoms is governed by a bank **SendRestrictionFn** registered
+via `bankKeeper.AppendSendRestriction(k.SendRestriction)` in `app.go`. Because the
+function runs inside `BankKeeper.SendCoins` — the single chokepoint every transfer
+path funnels through — issuers cannot be bypassed. The function defers to the same
+`CheckTransferAllowed` predicate `MsgTransferRWA` uses, and exempts the `x/rwa`
+module account so mint/burn/escrow legs are never blocked. (Refined from the
+original "ante decorator" design — Phase 3 spec D5.)
 
 ### 3.7 Events
 

@@ -1,0 +1,132 @@
+syntax = "proto3";
+package vertix.rwa.v1;
+
+import "amino/amino.proto";
+import "cosmos/msg/v1/msg.proto";
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "vertix/rwa/v1/types.proto";
+
+option go_package = "github.com/vertix-network/vertix/x/rwa/types";
+
+// Msg defines the RWA module transaction service.
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+  // RegisterAsset registers a new RWA asset in DRAFT status.
+  rpc RegisterAsset(MsgRegisterAsset)           returns (MsgRegisterAssetResponse);
+  // AttestAsset locks the issuer bond and attests oracle price.
+  rpc AttestAsset(MsgAttestAsset)               returns (MsgAttestAssetResponse);
+  // MintRWA mints factory-denom tokens against attested notional.
+  rpc MintRWA(MsgMintRWA)                       returns (MsgMintRWAResponse);
+  // TransferRWA transfers factory-denom tokens subject to restrictions.
+  rpc TransferRWA(MsgTransferRWA)               returns (MsgTransferRWAResponse);
+  // SettleRWA settles an active asset and unwinds positions.
+  rpc SettleRWA(MsgSettleRWA)                   returns (MsgSettleRWAResponse);
+  // UpdateRestrictions updates allow/deny lists for an asset.
+  rpc UpdateRestrictions(MsgUpdateRestrictions) returns (MsgUpdateRestrictionsResponse);
+  // SlashBond slashes issuer bond via governance authority.
+  rpc SlashBond(MsgSlashBond)                   returns (MsgSlashBondResponse);
+  // UpdateParams updates module parameters via governance authority.
+  rpc UpdateParams(MsgUpdateParams)             returns (MsgUpdateParamsResponse);
+}
+
+// MsgRegisterAsset registers a new RWA asset.
+message MsgRegisterAsset {
+  option (cosmos.msg.v1.signer) = "issuer";
+  option (amino.name)           = "vertix/x/rwa/MsgRegisterAsset";
+  string issuer      = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string asset_id    = 2;
+  string name        = 3;
+  string description = 4;
+  string oracle_pair = 5;
+  string bond        = 6 [(cosmos_proto.scalar) = "cosmos.Int"];
+}
+
+// MsgRegisterAssetResponse is the response for MsgRegisterAsset.
+message MsgRegisterAssetResponse {}
+
+// MsgAttestAsset attests an asset with oracle price and bond lock.
+message MsgAttestAsset {
+  option (cosmos.msg.v1.signer) = "issuer";
+  option (amino.name)           = "vertix/x/rwa/MsgAttestAsset";
+  string issuer   = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string asset_id = 2;
+}
+
+// MsgAttestAssetResponse is the response for MsgAttestAsset.
+message MsgAttestAssetResponse {}
+
+// MsgMintRWA mints factory-denom tokens for an active asset.
+message MsgMintRWA {
+  option (cosmos.msg.v1.signer) = "issuer";
+  option (amino.name)           = "vertix/x/rwa/MsgMintRWA";
+  string issuer   = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string asset_id = 2;
+  string notional = 3 [(cosmos_proto.scalar) = "cosmos.Int"];
+}
+
+// MsgMintRWAResponse is the response for MsgMintRWA.
+message MsgMintRWAResponse {}
+
+// MsgTransferRWA transfers factory-denom tokens between accounts.
+message MsgTransferRWA {
+  option (cosmos.msg.v1.signer) = "sender";
+  option (amino.name)           = "vertix/x/rwa/MsgTransferRWA";
+  string sender    = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string recipient = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string asset_id  = 3;
+  string amount    = 4 [(cosmos_proto.scalar) = "cosmos.Int"];
+}
+
+// MsgTransferRWAResponse is the response for MsgTransferRWA.
+message MsgTransferRWAResponse {}
+
+// MsgSettleRWA settles an active asset.
+message MsgSettleRWA {
+  option (cosmos.msg.v1.signer) = "issuer";
+  option (amino.name)           = "vertix/x/rwa/MsgSettleRWA";
+  string issuer   = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string asset_id = 2;
+}
+
+// MsgSettleRWAResponse is the response for MsgSettleRWA.
+message MsgSettleRWAResponse {}
+
+// MsgUpdateRestrictions updates transfer restrictions for an asset.
+message MsgUpdateRestrictions {
+  option (cosmos.msg.v1.signer) = "issuer";
+  option (amino.name)           = "vertix/x/rwa/MsgUpdateRestrictions";
+  string issuer             = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string asset_id           = 2;
+  bool   allow_all          = 3;
+  repeated string add_allow = 4 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  repeated string del_allow = 5 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  repeated string add_deny  = 6 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  repeated string del_deny  = 7 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+// MsgUpdateRestrictionsResponse is the response for MsgUpdateRestrictions.
+message MsgUpdateRestrictionsResponse {}
+
+// MsgSlashBond slashes issuer bond via governance.
+message MsgSlashBond {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name)           = "vertix/x/rwa/MsgSlashBond";
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string asset_id  = 2;
+  string reason    = 3;
+}
+
+// MsgSlashBondResponse is the response for MsgSlashBond.
+message MsgSlashBondResponse {}
+
+// MsgUpdateParams updates module parameters via governance.
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name)           = "vertix/x/rwa/MsgUpdateParams";
+  string    authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  RWAParams params    = 2 [(gogoproto.nullable) = false];
+}
+
+// MsgUpdateParamsResponse is the response for MsgUpdateParams.
+message MsgUpdateParamsResponse {}

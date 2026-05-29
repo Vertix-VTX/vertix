@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"cosmossdk.io/log"
@@ -35,11 +36,58 @@ func (MockAccount) GetModuleAddress(name string) sdk.AccAddress {
 // so they agree with MockAccount.
 type MockBank struct {
 	balances map[string]sdk.Coins
+	supply   sdk.Coins
 	Burned   sdk.Coins
 }
 
 func NewMockBank() *MockBank {
-	return &MockBank{balances: map[string]sdk.Coins{}, Burned: sdk.NewCoins()}
+	return &MockBank{balances: map[string]sdk.Coins{}, supply: sdk.NewCoins(), Burned: sdk.NewCoins()}
+}
+
+func (m *MockBank) SetBalance(addr sdk.AccAddress, coins sdk.Coins) {
+	m.balances[addr.String()] = coins
+}
+func (m *MockBank) Balance(addr sdk.AccAddress) sdk.Coins { return m.balances[addr.String()] }
+func (m *MockBank) ModuleAddr(name string) sdk.AccAddress { return authtypes.NewModuleAddress(name) }
+
+func (m *MockBank) GetSupply(_ context.Context, denom string) sdk.Coin {
+	return sdk.NewCoin(denom, m.supply.AmountOf(denom))
+}
+
+func (m *MockBank) MintCoins(_ context.Context, module string, amt sdk.Coins) error {
+	addr := authtypes.NewModuleAddress(module).String()
+	m.balances[addr] = m.balances[addr].Add(amt...)
+	m.supply = m.supply.Add(amt...)
+	return nil
+}
+
+func (m *MockBank) SendCoinsFromAccountToModule(_ context.Context, sender sdk.AccAddress, module string, amt sdk.Coins) error {
+	if !m.balances[sender.String()].IsAllGTE(amt) {
+		return errors.New("insufficient funds")
+	}
+	to := authtypes.NewModuleAddress(module).String()
+	m.balances[sender.String()] = m.balances[sender.String()].Sub(amt...)
+	m.balances[to] = m.balances[to].Add(amt...)
+	return nil
+}
+
+func (m *MockBank) SendCoinsFromModuleToAccount(_ context.Context, module string, recipient sdk.AccAddress, amt sdk.Coins) error {
+	from := authtypes.NewModuleAddress(module).String()
+	if !m.balances[from].IsAllGTE(amt) {
+		return errors.New("insufficient module funds")
+	}
+	m.balances[from] = m.balances[from].Sub(amt...)
+	m.balances[recipient.String()] = m.balances[recipient.String()].Add(amt...)
+	return nil
+}
+
+func (m *MockBank) SendCoins(_ context.Context, from, to sdk.AccAddress, amt sdk.Coins) error {
+	if !m.balances[from.String()].IsAllGTE(amt) {
+		return errors.New("insufficient funds")
+	}
+	m.balances[from.String()] = m.balances[from.String()].Sub(amt...)
+	m.balances[to.String()] = m.balances[to.String()].Add(amt...)
+	return nil
 }
 
 func (m *MockBank) SetModuleBalance(moduleName string, coins sdk.Coins) {
@@ -64,7 +112,13 @@ func (m *MockBank) SendCoinsFromModuleToModule(_ context.Context, from, to strin
 
 func (m *MockBank) BurnCoins(_ context.Context, module string, amt sdk.Coins) error {
 	addr := authtypes.NewModuleAddress(module).String()
+	if !m.balances[addr].IsAllGTE(amt) {
+		return errors.New("insufficient module balance to burn")
+	}
 	m.balances[addr] = m.balances[addr].Sub(amt...)
+	if m.supply.IsAllGTE(amt) {
+		m.supply = m.supply.Sub(amt...)
+	}
 	m.Burned = m.Burned.Add(amt...)
 	return nil
 }

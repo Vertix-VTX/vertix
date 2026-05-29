@@ -1,0 +1,47 @@
+syntax = "proto3";
+package vertix.rwa.v1;
+
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/vertix-network/vertix/x/rwa/types";
+
+// AssetStatus is the lifecycle state of an RWA asset.
+enum AssetStatus {
+  // ASSET_STATUS_UNSPECIFIED is the zero value.
+  ASSET_STATUS_UNSPECIFIED = 0;
+  // ASSET_STATUS_DRAFT is registered but not yet attested.
+  ASSET_STATUS_DRAFT       = 1;
+  // ASSET_STATUS_ATTESTED has a locked bond and oracle price attestation.
+  ASSET_STATUS_ATTESTED    = 2;
+  // ASSET_STATUS_ACTIVE may mint and transfer factory denoms.
+  ASSET_STATUS_ACTIVE      = 3;
+  // ASSET_STATUS_SETTLED has completed lifecycle settlement.
+  ASSET_STATUS_SETTLED     = 4;
+}
+
+// AssetRecord is the registry entry for one RWA asset.
+message AssetRecord {
+  string      asset_id        = 1;
+  string      issuer          = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string      name            = 3;
+  string      description     = 4;
+  AssetStatus status          = 5;
+  string      oracle_pair     = 6;
+  string      denom           = 7;
+  string      bond            = 8  [(cosmos_proto.scalar) = "cosmos.Int"];
+  string      notional_minted = 9  [(cosmos_proto.scalar) = "cosmos.Int"];
+  bool        allow_all       = 10;
+  string      attested_price  = 11 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  google.protobuf.Timestamp attested_at = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+  google.protobuf.Timestamp created_at  = 13 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+  google.protobuf.Timestamp settled_at  = 14 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// RWAParams defines module governance parameters.
+message RWAParams {
+  string min_issuer_bond = 1 [(cosmos_proto.scalar) = "cosmos.Int"];
+  string mint_fee_rate   = 2 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  string settle_fee_rate = 3 [(cosmos_proto.scalar) = "cosmos.Dec"];
+}

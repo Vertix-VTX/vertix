@@ -510,6 +510,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// FeesParams defines module governance parameters for fee burn and distribution.
 type FeesParams struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

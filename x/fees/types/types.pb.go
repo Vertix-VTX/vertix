@@ -23,6 +23,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// FeesParams defines module governance parameters for fee burn and distribution.
 type FeesParams struct {
 	BurnRatio         string `protobuf:"bytes,1,opt,name=burn_ratio,json=burnRatio,proto3" json:"burn_ratio,omitempty"`
 	DistributionRatio string `protobuf:"bytes,2,opt,name=distribution_ratio,json=distributionRatio,proto3" json:"distribution_ratio,omitempty"`

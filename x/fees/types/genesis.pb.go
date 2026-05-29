@@ -23,6 +23,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// GenesisState defines the fees module genesis state.
 type GenesisState struct {
 	Params FeesParams `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
 }

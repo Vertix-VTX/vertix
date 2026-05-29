@@ -1,0 +1,64 @@
+syntax = "proto3";
+package vertix.rwa.v1;
+
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "vertix/rwa/v1/types.proto";
+
+option go_package = "github.com/vertix-network/vertix/x/rwa/types";
+
+// Query defines the RWA module gRPC querier.
+service Query {
+  // Asset returns one asset record by ID.
+  rpc Asset(QueryAssetRequest) returns (QueryAssetResponse) {
+    option (google.api.http).get = "/vertix/rwa/v1/asset/{asset_id}";
+  }
+  // AssetsByIssuer lists assets registered by an issuer.
+  rpc AssetsByIssuer(QueryAssetsByIssuerRequest) returns (QueryAssetsByIssuerResponse) {
+    option (google.api.http).get = "/vertix/rwa/v1/assets_by_issuer/{issuer}";
+  }
+  // Restrictions returns allow/deny configuration for an asset.
+  rpc Restrictions(QueryRestrictionsRequest) returns (QueryRestrictionsResponse) {
+    option (google.api.http).get = "/vertix/rwa/v1/restrictions/{asset_id}";
+  }
+  // Params returns the current module parameters.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/vertix/rwa/v1/params";
+  }
+}
+
+// QueryAssetRequest is the request type for Query/Asset.
+message QueryAssetRequest { string asset_id = 1; }
+
+// QueryAssetResponse is the response type for Query/Asset.
+message QueryAssetResponse { AssetRecord asset = 1 [(gogoproto.nullable) = false]; }
+
+// QueryAssetsByIssuerRequest is the request type for Query/AssetsByIssuer.
+message QueryAssetsByIssuerRequest {
+  string issuer = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryAssetsByIssuerResponse is the response type for Query/AssetsByIssuer.
+message QueryAssetsByIssuerResponse {
+  repeated AssetRecord assets = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryRestrictionsRequest is the request type for Query/Restrictions.
+message QueryRestrictionsRequest { string asset_id = 1; }
+
+// QueryRestrictionsResponse is the response type for Query/Restrictions.
+message QueryRestrictionsResponse {
+  bool            allow_all = 1;
+  repeated string allowlist = 2;
+  repeated string denylist  = 3;
+}
+
+// QueryParamsRequest is the request type for Query/Params.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is the response type for Query/Params.
+message QueryParamsResponse { RWAParams params = 1 [(gogoproto.nullable) = false]; }

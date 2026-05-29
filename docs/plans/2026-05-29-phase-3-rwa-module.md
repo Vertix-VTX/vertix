@@ -58,6 +58,8 @@
 
 We depend on `bank` and `distribution` (both standard, recognized by Ignite). The `oracle` dependency is wired manually in Task 24 (Ignite `--dep` is unreliable for custom modules; the depinject interface-binding precedent is the oracle module's own `StakingKeeper`/`SlashingKeeper` inputs).
 
+> **Deviation from spec D0 (intentional):** the spec's illustrative command is `--dep bank,oracle,params`. We use `--dep bank,distribution` instead because (a) `distribution` is required for `MsgSlashBond` → `FundCommunityPool` and is missing from the spec's literal command; (b) `oracle` is a custom module wired by interface binding (Task 24), not a reliable `--dep` target; and (c) `params` is unnecessary — like `x/oracle` and `x/fees`, this module stores params in a raw KV key (`0x05`), not an `x/params` subspace. The spec explicitly treats the scaffold command as a starting point ("then adapt"); the binding contract is the module set, ordering, and cross-phase contracts, all of which this plan satisfies.
+
 Run:
 
 ```bash
@@ -2270,6 +2272,23 @@ func TestMintRWARequiresAttested(t *testing.T) {
 	_, err := srv.MintRWA(ctx, &types.MsgMintRWA{Issuer: issuer.String(), AssetId: "gold-01", Notional: "1000"})
 	require.ErrorIs(t, err, types.ErrInvalidStatus)
 }
+
+// Spec §8 / residual-risk: the chosen model is "accumulate" — a re-mint on an
+// ACTIVE asset adds supply and accrues notional_minted.
+func TestMintRWAReMintAccumulates(t *testing.T) {
+	srv, k, bank, ctx := setupServer(t, keeper.MockOracle{Price: math.LegacyNewDec(1)})
+	issuer := registerDraft(t, srv, k, bank, ctx, "gold-01")
+	attestAsset(t, srv, issuer, "gold-01", ctx)
+
+	_, err := srv.MintRWA(ctx, &types.MsgMintRWA{Issuer: issuer.String(), AssetId: "gold-01", Notional: "1000000"})
+	require.NoError(t, err)
+	_, err = srv.MintRWA(ctx, &types.MsgMintRWA{Issuer: issuer.String(), AssetId: "gold-01", Notional: "500000"})
+	require.NoError(t, err)
+
+	rec, _ := k.GetAsset(ctx, "gold-01")
+	require.Equal(t, math.NewInt(1500000).String(), rec.NotionalMinted)
+	require.Equal(t, math.NewInt(1500000), bank.GetBalance(ctx, issuer, "rwa/gold-01").Amount)
+}
 ```
 
 Note: `fee_collector` is the module name for `authtypes.FeeCollectorName`; `k.ModuleAddr` resolves it via `authtypes.NewModuleAddress`.
@@ -3012,7 +3031,7 @@ func TestGenesisRoundTrip(t *testing.T) {
 	gs := types.GenesisState{
 		Params: types.DefaultParams(),
 		Assets: []types.AssetRecord{
-			{AssetId: "gold", Issuer: sample.AccAddress(), Status: types.AssetStatus_ASSET_STATUS_DRAFT, Denom: "rwa/gold", Bond: "10000000000", NotionalMinted: "0", AllowAll: false},
+			{AssetId: "gold", Issuer: sample.AccAddress(), Status: types.AssetStatus_ASSET_STATUS_DRAFT, OraclePair: "XAU:USD", Denom: "rwa/gold", Bond: "10000000000", NotionalMinted: "0", AllowAll: false},
 		},
 		Restrictions: []types.Restriction{
 			{AssetId: "gold", Address: alice, IsDeny: false},
@@ -3054,6 +3073,7 @@ func (gs GenesisState) Validate() error {
 	if err := gs.Params.Validate(); err != nil {
 		return err
 	}
+	minBond, _ := gs.Params.MinIssuerBondInt()
 	seen := make(map[string]struct{}, len(gs.Assets))
 	for i, a := range gs.Assets {
 		if err := ValidateAssetID(a.AssetId); err != nil {
@@ -3066,8 +3086,20 @@ func (gs GenesisState) Validate() error {
 		if _, err := sdk.AccAddressFromBech32(a.Issuer); err != nil {
 			return fmt.Errorf("genesis asset[%d]: invalid issuer: %w", i, err)
 		}
-		if _, ok := math.NewIntFromString(a.Bond); !ok {
+		if a.Status < AssetStatus_ASSET_STATUS_DRAFT || a.Status > AssetStatus_ASSET_STATUS_SETTLED {
+			return fmt.Errorf("genesis asset[%d]: invalid status %s", i, a.Status)
+		}
+		if !pairRegex.MatchString(a.OraclePair) {
+			return fmt.Errorf("genesis asset[%d]: oracle_pair %q is not BASE:QUOTE", i, a.OraclePair)
+		}
+		bond, ok := math.NewIntFromString(a.Bond)
+		if !ok {
 			return fmt.Errorf("genesis asset[%d]: invalid bond %q", i, a.Bond)
+		}
+		if a.Status == AssetStatus_ASSET_STATUS_ATTESTED || a.Status == AssetStatus_ASSET_STATUS_ACTIVE {
+			if bond.LT(minBond) {
+				return fmt.Errorf("genesis asset[%d]: bond %s < min_issuer_bond %s", i, bond, minBond)
+			}
 		}
 		if _, ok := math.NewIntFromString(a.NotionalMinted); !ok {
 			return fmt.Errorf("genesis asset[%d]: invalid notional_minted %q", i, a.NotionalMinted)
@@ -3084,6 +3116,8 @@ func (gs GenesisState) Validate() error {
 	return nil
 }
 ```
+
+`pairRegex` is the unexported regex defined in `x/rwa/types/msgs.go` (Task 7); it is reused here since both files are in package `types`.
 
 - [ ] **Step 4: Write `x/rwa/keeper/genesis.go`**
 
@@ -3260,12 +3294,15 @@ func BondInvariant(k Keeper) sdk.Invariant {
 			sum = sum.Add(bond)
 			return true
 		})
+		// Spec invariant 2: the module account must hold at LEAST the sum of live
+		// bonds (≥, not ==, since uvtx could in principle be sent to the module
+		// account directly; fees never transit it).
 		moduleBal := k.bankKeeper.GetBalance(ctx, k.ModuleAddress(), types.BondDenom).Amount
-		if !moduleBal.Equal(sum) {
+		if moduleBal.LT(sum) {
 			broken = true
 		}
 		return sdk.FormatInvariant(types.ModuleName, "bonds",
-			"module uvtx balance must equal sum of non-settled bonds and every ACTIVE asset must be bonded"), broken
+			"module uvtx balance must be >= sum of non-settled bonds and every ACTIVE asset must be bonded"), broken
 	}
 }
 
@@ -3719,7 +3756,7 @@ git commit -m "test(rwa): Phase 3 acceptance gate full-lifecycle + bypass tests"
 
 Run: `make lint`
 
-Expected: no findings (fix unused imports / `_ = ...` guards introduced in tests; remove the placeholder helpers noted in Tasks 10 and 12 if any slipped through).
+Expected: no findings. Common fixes: unused imports, and the `_ = ...` keep-import guards used in a few tests (e.g. `_ = rwakeeper.BuildDenom`, `_ = authtypes.FeeCollectorName`) — remove a guard if its package is already used elsewhere in the file so `golangci-lint` does not flag it as redundant.
 
 - [ ] **Step 2: Test**
 
@@ -3801,3 +3838,5 @@ git commit -am "chore(rwa): Phase 3 CI green — lint test build"
 | Eight events emitted | Tasks 5, 15–21 |
 
 **Cross-phase notes:** `x/rwa` consumes the Phase 1 `OracleKeeper` (`GetPrice`) by depinject interface binding (Task 24) and routes fees to `auth.FeeCollectorName` for Phase 2's `x/fees` to sweep (Tasks 14, 17, 20). The send-restriction (Task 13/25) is the mechanism Phase 5 relies on to preserve `rwa/*` restriction semantics over ICS-20.
+
+**Scoping note on the app-level fee-sweep gate (spec §11):** the spec's gate row "Fees collected and swept by `x/fees`" has two halves. The "collected" half (mint/settle route `floor(notional × rate)` uvtx into `FeeCollectorName`) is verified at keeper level in Tasks 17, 20, and 27. The "swept" half is Phase 2's already-tested `EndBlocker` behavior (`x/fees` Task 12/18) — re-driving it through a full app-level `MintRWA` + `EndBlock` integration test is deliberately descoped here because it would require standing up bonded validators, feeders, and a real oracle aggregation just to reach `ATTESTED`. If a true cross-module app-level test is desired later, add it as a Phase 6 (devnet) end-to-end scenario, where the full validator/oracle stack already exists.

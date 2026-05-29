@@ -342,8 +342,12 @@ When this spec disagrees with another doc on **phase order or cross-phase contra
 ## Appendix C — Open Questions (deferred to per-phase brainstorms)
 
 - **Outlier detection method** (Phase 1): exact statistical test (e.g. MAD vs. fixed-band deviation) for the 1.0% outlier slash.
-- **Transfer-restriction model** (Phase 3): allowlist/denylist storage shape and per-asset governance.
-- **Dispute resolution** (Phase 3): the on-chain vs. governance path that triggers bond slashing on `SETTLED`.
+- **Transfer-restriction model** (Phase 3): RESOLVED — separate keyed store for
+  allow/deny membership; enforced via a bank SendRestrictionFn. See
+  `specs/2026-05-29-phase-3-rwa-module-design.md` D4/D5.
+- **Dispute resolution** (Phase 3): RESOLVED — governance-only `MsgSlashBond`
+  force-settles the asset and routes the bond to the community pool. See
+  `specs/2026-05-29-phase-3-rwa-module-design.md` D7.
 - **Provider set + weighting** (Phase 4): default provider list and handling of provider disagreement/outages.
 - **TPS target** (Phases 7/9): the concrete throughput/latency bar load tests must clear.
 - **Day-1 IBC channel set** (Phase 10): final confirmation beyond Cosmos Hub.
