@@ -1,6 +1,8 @@
 package app
 
 import (
+	"encoding/json"
+
 	"cosmossdk.io/core/appmodule"
 	storetypes "cosmossdk.io/store/types"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -17,6 +19,7 @@ import (
 	icacontroller "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller"
 	icacontrollerkeeper "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller/keeper"
 	icacontrollertypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller/types"
+	icagenesistypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/genesis/types"
 	icahost "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/host"
 	icahostkeeper "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/host/keeper"
 	icahosttypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/host/types"
@@ -183,6 +186,26 @@ func (app *App) registerIBCModules(_ servertypes.AppOptions) error {
 	}
 
 	return nil
+}
+
+func lockedICAGenesis() *icagenesistypes.GenesisState {
+	hostGenesis := icagenesistypes.DefaultHostGenesis()
+	hostGenesis.Params.HostEnabled = true
+	hostGenesis.Params.AllowMessages = []string{}
+
+	controllerGenesis := icagenesistypes.DefaultControllerGenesis()
+	controllerGenesis.Params.ControllerEnabled = false
+
+	return &icagenesistypes.GenesisState{
+		HostGenesisState:       hostGenesis,
+		ControllerGenesisState: controllerGenesis,
+	}
+}
+
+func (app *App) DefaultGenesis() map[string]json.RawMessage {
+	genesis := app.App.DefaultGenesis()
+	genesis[icatypes.ModuleName] = app.appCodec.MustMarshalJSON(lockedICAGenesis())
+	return genesis
 }
 
 // RegisterIBC Since the IBC modules don't support dependency injection,

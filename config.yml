@@ -62,3 +62,15 @@ genesis:
           display: vtx
           name: Vertix
           symbol: VTX
+    transfer:
+      params:
+        send_enabled: true
+        receive_enabled: true
+    interchainaccounts:
+      host_genesis_state:
+        params:
+          host_enabled: true
+          allow_messages: []
+      controller_genesis_state:
+        params:
+          controller_enabled: false
