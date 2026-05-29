@@ -9,3 +9,4 @@ release/
 *.ign
 build/vertixd
 build/vertix-feeder
+build/
