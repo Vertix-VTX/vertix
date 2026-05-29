@@ -23,11 +23,19 @@ sudo docker run --rm --entrypoint promtool \
 log "Starting founder stack"
 sudo_make testnet-up
 
-log "Waiting for block production (~30s)"
-sleep 30
-H=$(sudo docker run --rm --network vertix-testnet vertix:testnet \
-  sh -c "curl -s http://sentry1:26657/status" | jq -r '.result.sync_info.latest_block_height')
-log "latest_block_height=$H"
+log "Waiting for block production on sentry1 (up to ~120s)"
+H=0
+for _ in $(seq 1 60); do
+  H=$(sudo docker run --rm --network vertix-testnet vertix:testnet \
+    sh -c "curl -sf http://sentry1:26657/status" 2>/dev/null \
+    | jq -r '.result.sync_info.latest_block_height // "0"') || H=0
+  H=${H:-0}
+  if [ "$(echo "$H > 0" | bc -l)" = "1" ]; then
+    log "latest_block_height=$H"
+    break
+  fi
+  sleep 2
+done
 assert_gt "$H" "0" "chain producing blocks (height=$H)"
 
 log "Join smoke"

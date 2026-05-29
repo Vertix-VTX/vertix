@@ -62,6 +62,7 @@ All design and process docs live in [`docs/`](./docs/). Always check these befor
 | 05 | [`docs/plans/2026-05-09-05-oracle-feeder-sidecar.md`](./docs/plans/2026-05-09-05-oracle-feeder-sidecar.md) | `vertix-feeder` binary |
 | 06 | [`docs/plans/2026-05-09-06-ibc-devnet.md`](./docs/plans/2026-05-09-06-ibc-devnet.md) | IBC E2E + devnet stack |
 | 08 | [`docs/plans/2026-05-29-phase-8-public-testnet.md`](./docs/plans/2026-05-29-phase-8-public-testnet.md) | `vertix-testnet-1` launch artifacts + runbook |
+| 09 | [`docs/plans/2026-05-29-phase-9-testnet-v2-genesis-rehearsal.md`](./docs/plans/2026-05-29-phase-9-testnet-v2-genesis-rehearsal.md) | `vertix-testnet-2`, Cosmovisor upgrade, gentx rehearsal, load SLO, registry drafts |
 
 ---
 
