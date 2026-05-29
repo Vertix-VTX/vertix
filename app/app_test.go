@@ -9,7 +9,10 @@ import (
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/stretchr/testify/require"
 
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+
 	"github.com/vertix-network/vertix/app"
+	feestypes "github.com/vertix-network/vertix/x/fees/types"
 	oracletypes "github.com/vertix-network/vertix/x/oracle/types"
 )
 
@@ -71,4 +74,20 @@ func TestOracleGenesisRoundTrip(t *testing.T) {
 	a := newTestApp(t)
 	genState := a.DefaultGenesis()
 	require.Contains(t, genState, oracletypes.ModuleName)
+}
+
+func TestFeesModuleWired(t *testing.T) {
+	a := newTestApp(t)
+	_, ok := a.ModuleManager.Modules[feestypes.ModuleName]
+	require.True(t, ok, "x/fees must be wired")
+	require.NotNil(t, a.FeesKeeper)
+}
+
+func TestFeesModuleAccountHasBurner(t *testing.T) {
+	newTestApp(t)
+	perms, ok := app.GetMaccPerms()[feestypes.ModuleName]
+	require.True(t, ok, "x/fees module account must be configured")
+	require.Contains(t, perms, authtypes.Burner)
+	require.NotContains(t, perms, authtypes.Minter)
+	require.NotContains(t, perms, authtypes.Staking)
 }

@@ -2742,6 +2742,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// OracleFeed is a single validator price vote for a pair at a block height.
 type OracleFeed struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2801,6 +2802,7 @@ func (x *OracleFeed) GetBlockHeight() int64 {
 	return 0
 }
 
+// AggregatedPrice is the stake-weighted median price for a pair.
 type AggregatedPrice struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2860,6 +2862,7 @@ func (x *AggregatedPrice) GetBlockTime() *timestamppb.Timestamp {
 	return nil
 }
 
+// TWAPEntry is one sample in the time-weighted average price ring buffer.
 type TWAPEntry struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2911,6 +2914,7 @@ func (x *TWAPEntry) GetBlockTime() *timestamppb.Timestamp {
 	return nil
 }
 
+// OracleParams defines module governance parameters.
 type OracleParams struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

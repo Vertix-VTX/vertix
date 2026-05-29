@@ -31,6 +31,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// MsgSetFeeder sets the feeder account for a validator.
 type MsgSetFeeder struct {
 	Validator string `protobuf:"bytes,1,opt,name=validator,proto3" json:"validator,omitempty"`
 	Feeder    string `protobuf:"bytes,2,opt,name=feeder,proto3" json:"feeder,omitempty"`
@@ -83,6 +84,7 @@ func (m *MsgSetFeeder) GetFeeder() string {
 	return ""
 }
 
+// MsgSetFeederResponse is the response for MsgSetFeeder.
 type MsgSetFeederResponse struct {
 }
 
@@ -119,6 +121,7 @@ func (m *MsgSetFeederResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSetFeederResponse proto.InternalMessageInfo
 
+// MsgSubmitFeed submits a price feed from a delegated feeder.
 type MsgSubmitFeed struct {
 	Feeder    string `protobuf:"bytes,1,opt,name=feeder,proto3" json:"feeder,omitempty"`
 	Validator string `protobuf:"bytes,2,opt,name=validator,proto3" json:"validator,omitempty"`
@@ -187,6 +190,7 @@ func (m *MsgSubmitFeed) GetPrice() string {
 	return ""
 }
 
+// MsgSubmitFeedResponse is the response for MsgSubmitFeed.
 type MsgSubmitFeedResponse struct {
 }
 
@@ -223,6 +227,7 @@ func (m *MsgSubmitFeedResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSubmitFeedResponse proto.InternalMessageInfo
 
+// MsgUpdateParams updates oracle module parameters.
 type MsgUpdateParams struct {
 	Authority string       `protobuf:"bytes,1,opt,name=authority,proto3" json:"authority,omitempty"`
 	Params    OracleParams `protobuf:"bytes,2,opt,name=params,proto3" json:"params"`
@@ -275,6 +280,7 @@ func (m *MsgUpdateParams) GetParams() OracleParams {
 	return OracleParams{}
 }
 
+// MsgUpdateParamsResponse is the response for MsgUpdateParams.
 type MsgUpdateParamsResponse struct {
 }
 
@@ -372,8 +378,11 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MsgClient interface {
+	// SetFeeder delegates price submission to a feeder account.
 	SetFeeder(ctx context.Context, in *MsgSetFeeder, opts ...grpc.CallOption) (*MsgSetFeederResponse, error)
+	// SubmitFeed submits a validator price vote for a pair.
 	SubmitFeed(ctx context.Context, in *MsgSubmitFeed, opts ...grpc.CallOption) (*MsgSubmitFeedResponse, error)
+	// UpdateParams updates module parameters via governance authority.
 	UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error)
 }
 
@@ -414,8 +423,11 @@ func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts 
 
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
+	// SetFeeder delegates price submission to a feeder account.
 	SetFeeder(context.Context, *MsgSetFeeder) (*MsgSetFeederResponse, error)
+	// SubmitFeed submits a validator price vote for a pair.
 	SubmitFeed(context.Context, *MsgSubmitFeed) (*MsgSubmitFeedResponse, error)
+	// UpdateParams updates module parameters via governance authority.
 	UpdateParams(context.Context, *MsgUpdateParams) (*MsgUpdateParamsResponse, error)
 }
 

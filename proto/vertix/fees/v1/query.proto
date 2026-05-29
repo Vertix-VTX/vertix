@@ -1,0 +1,24 @@
+syntax = "proto3";
+package vertix.fees.v1;
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "vertix/fees/v1/types.proto";
+
+option go_package = "github.com/vertix-network/vertix/x/fees/types";
+
+// Query defines the fees module gRPC querier.
+service Query {
+  // Params returns the current module parameters.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/vertix/fees/v1/params";
+  }
+}
+
+// QueryParamsRequest is the request type for Query/Params.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is the response type for Query/Params.
+message QueryParamsResponse {
+  FeesParams params = 1 [(gogoproto.nullable) = false];
+}

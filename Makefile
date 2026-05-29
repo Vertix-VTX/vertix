@@ -145,7 +145,9 @@ clean:
 
 validate-genesis: build
 	@echo "--> Validating genesis"
-	@$(BUILD_DIR)/$(APPNAME)d genesis validate-genesis
+	@tmpdir=$$(mktemp -d) && \
+		$(BUILD_DIR)/$(APPNAME)d init validate --chain-id vertix-devnet-1 --home $$tmpdir && \
+		$(BUILD_DIR)/$(APPNAME)d genesis validate-genesis --home $$tmpdir
 
 .PHONY: validate-genesis
 

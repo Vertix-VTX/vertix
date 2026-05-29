@@ -4274,6 +4274,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// QueryPriceRequest is the request type for Query/Price.
 type QueryPriceRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4309,6 +4310,7 @@ func (x *QueryPriceRequest) GetPair() string {
 	return ""
 }
 
+// QueryPriceResponse is the response type for Query/Price.
 type QueryPriceResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4344,6 +4346,7 @@ func (x *QueryPriceResponse) GetPrice() *AggregatedPrice {
 	return nil
 }
 
+// QueryTwapRequest is the request type for Query/Twap.
 type QueryTwapRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4387,6 +4390,7 @@ func (x *QueryTwapRequest) GetWindowSeconds() uint64 {
 	return 0
 }
 
+// QueryTwapResponse is the response type for Query/Twap.
 type QueryTwapResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4422,6 +4426,7 @@ func (x *QueryTwapResponse) GetPrice() string {
 	return ""
 }
 
+// QueryParamsRequest is the request type for Query/Params.
 type QueryParamsRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4448,6 +4453,7 @@ func (*QueryParamsRequest) Descriptor() ([]byte, []int) {
 	return file_vertix_oracle_v1_query_proto_rawDescGZIP(), []int{4}
 }
 
+// QueryParamsResponse is the response type for Query/Params.
 type QueryParamsResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4483,6 +4489,7 @@ func (x *QueryParamsResponse) GetParams() *OracleParams {
 	return nil
 }
 
+// QueryMissCounterRequest is the request type for Query/MissCounter.
 type QueryMissCounterRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4518,6 +4525,7 @@ func (x *QueryMissCounterRequest) GetValidator() string {
 	return ""
 }
 
+// QueryMissCounterResponse is the response type for Query/MissCounter.
 type QueryMissCounterResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4561,6 +4569,7 @@ func (x *QueryMissCounterResponse) GetTotalWindows() int64 {
 	return 0
 }
 
+// QueryFeederRequest is the request type for Query/Feeder.
 type QueryFeederRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -4596,6 +4605,7 @@ func (x *QueryFeederRequest) GetValidator() string {
 	return ""
 }
 
+// QueryFeederResponse is the response type for Query/Feeder.
 type QueryFeederResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

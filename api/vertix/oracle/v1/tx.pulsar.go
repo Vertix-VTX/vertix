@@ -2692,6 +2692,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// MsgSetFeeder sets the feeder account for a validator.
 type MsgSetFeeder struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2735,6 +2736,7 @@ func (x *MsgSetFeeder) GetFeeder() string {
 	return ""
 }
 
+// MsgSetFeederResponse is the response for MsgSetFeeder.
 type MsgSetFeederResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2761,6 +2763,7 @@ func (*MsgSetFeederResponse) Descriptor() ([]byte, []int) {
 	return file_vertix_oracle_v1_tx_proto_rawDescGZIP(), []int{1}
 }
 
+// MsgSubmitFeed submits a price feed from a delegated feeder.
 type MsgSubmitFeed struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2820,6 +2823,7 @@ func (x *MsgSubmitFeed) GetPrice() string {
 	return ""
 }
 
+// MsgSubmitFeedResponse is the response for MsgSubmitFeed.
 type MsgSubmitFeedResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2846,6 +2850,7 @@ func (*MsgSubmitFeedResponse) Descriptor() ([]byte, []int) {
 	return file_vertix_oracle_v1_tx_proto_rawDescGZIP(), []int{3}
 }
 
+// MsgUpdateParams updates oracle module parameters.
 type MsgUpdateParams struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2889,6 +2894,7 @@ func (x *MsgUpdateParams) GetParams() *OracleParams {
 	return nil
 }
 
+// MsgUpdateParamsResponse is the response for MsgUpdateParams.
 type MsgUpdateParamsResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -1,0 +1,12 @@
+syntax = "proto3";
+package vertix.fees.v1;
+
+import "cosmos_proto/cosmos.proto";
+
+option go_package = "github.com/vertix-network/vertix/x/fees/types";
+
+// FeesParams defines module governance parameters for fee burn and distribution.
+message FeesParams {
+  string burn_ratio         = 1 [(cosmos_proto.scalar) = "cosmos.Dec"];
+  string distribution_ratio = 2 [(cosmos_proto.scalar) = "cosmos.Dec"];
+}

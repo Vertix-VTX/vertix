@@ -1222,6 +1222,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// FeederDelegation maps a validator to its delegated feeder account.
 type FeederDelegation struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1265,6 +1266,7 @@ func (x *FeederDelegation) GetFeeder() string {
 	return ""
 }
 
+// GenesisState defines the oracle module genesis state.
 type GenesisState struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

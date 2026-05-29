@@ -67,7 +67,9 @@ import (
 	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 
+	feesmodulekeeper "github.com/vertix-network/vertix/x/fees/keeper"
 	oraclemodulekeeper "github.com/vertix-network/vertix/x/oracle/keeper"
+
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 
 	"github.com/vertix-network/vertix/docs"
@@ -134,6 +136,7 @@ type App struct {
 	ScopedKeepers             map[string]capabilitykeeper.ScopedKeeper
 
 	OracleKeeper oraclemodulekeeper.Keeper
+	FeesKeeper   feesmodulekeeper.Keeper
 	// this line is used by starport scaffolding # stargate/app/keeperDeclaration
 
 	// simulation manager
@@ -237,6 +240,7 @@ func New(
 		&app.EvidenceKeeper,
 		&app.FeeGrantKeeper,
 		&app.OracleKeeper,
+		&app.FeesKeeper,
 		// this line is used by starport scaffolding # stargate/app/keeperDefinition
 	); err != nil {
 		panic(err)

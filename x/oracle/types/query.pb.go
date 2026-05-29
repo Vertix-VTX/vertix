@@ -31,6 +31,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// QueryPriceRequest is the request type for Query/Price.
 type QueryPriceRequest struct {
 	Pair string `protobuf:"bytes,1,opt,name=pair,proto3" json:"pair,omitempty"`
 }
@@ -75,6 +76,7 @@ func (m *QueryPriceRequest) GetPair() string {
 	return ""
 }
 
+// QueryPriceResponse is the response type for Query/Price.
 type QueryPriceResponse struct {
 	Price AggregatedPrice `protobuf:"bytes,1,opt,name=price,proto3" json:"price"`
 }
@@ -119,6 +121,7 @@ func (m *QueryPriceResponse) GetPrice() AggregatedPrice {
 	return AggregatedPrice{}
 }
 
+// QueryTwapRequest is the request type for Query/Twap.
 type QueryTwapRequest struct {
 	Pair          string `protobuf:"bytes,1,opt,name=pair,proto3" json:"pair,omitempty"`
 	WindowSeconds uint64 `protobuf:"varint,2,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
@@ -171,6 +174,7 @@ func (m *QueryTwapRequest) GetWindowSeconds() uint64 {
 	return 0
 }
 
+// QueryTwapResponse is the response type for Query/Twap.
 type QueryTwapResponse struct {
 	Price cosmossdk_io_math.LegacyDec `protobuf:"bytes,1,opt,name=price,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"price"`
 }
@@ -208,6 +212,7 @@ func (m *QueryTwapResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_QueryTwapResponse proto.InternalMessageInfo
 
+// QueryParamsRequest is the request type for Query/Params.
 type QueryParamsRequest struct {
 }
 
@@ -244,6 +249,7 @@ func (m *QueryParamsRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_QueryParamsRequest proto.InternalMessageInfo
 
+// QueryParamsResponse is the response type for Query/Params.
 type QueryParamsResponse struct {
 	Params OracleParams `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
 }
@@ -288,6 +294,7 @@ func (m *QueryParamsResponse) GetParams() OracleParams {
 	return OracleParams{}
 }
 
+// QueryMissCounterRequest is the request type for Query/MissCounter.
 type QueryMissCounterRequest struct {
 	Validator string `protobuf:"bytes,1,opt,name=validator,proto3" json:"validator,omitempty"`
 }
@@ -332,6 +339,7 @@ func (m *QueryMissCounterRequest) GetValidator() string {
 	return ""
 }
 
+// QueryMissCounterResponse is the response type for Query/MissCounter.
 type QueryMissCounterResponse struct {
 	Misses       int64 `protobuf:"varint,1,opt,name=misses,proto3" json:"misses,omitempty"`
 	TotalWindows int64 `protobuf:"varint,2,opt,name=total_windows,json=totalWindows,proto3" json:"total_windows,omitempty"`
@@ -384,6 +392,7 @@ func (m *QueryMissCounterResponse) GetTotalWindows() int64 {
 	return 0
 }
 
+// QueryFeederRequest is the request type for Query/Feeder.
 type QueryFeederRequest struct {
 	Validator string `protobuf:"bytes,1,opt,name=validator,proto3" json:"validator,omitempty"`
 }
@@ -428,6 +437,7 @@ func (m *QueryFeederRequest) GetValidator() string {
 	return ""
 }
 
+// QueryFeederResponse is the response type for Query/Feeder.
 type QueryFeederResponse struct {
 	Feeder string `protobuf:"bytes,1,opt,name=feeder,proto3" json:"feeder,omitempty"`
 }
@@ -546,10 +556,15 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type QueryClient interface {
+	// Price returns the latest aggregated price for a pair.
 	Price(ctx context.Context, in *QueryPriceRequest, opts ...grpc.CallOption) (*QueryPriceResponse, error)
+	// Twap returns the time-weighted average price for a pair and window.
 	Twap(ctx context.Context, in *QueryTwapRequest, opts ...grpc.CallOption) (*QueryTwapResponse, error)
+	// Params returns the current module parameters.
 	Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error)
+	// MissCounter returns miss statistics for a validator.
 	MissCounter(ctx context.Context, in *QueryMissCounterRequest, opts ...grpc.CallOption) (*QueryMissCounterResponse, error)
+	// Feeder returns the feeder account delegated by a validator.
 	Feeder(ctx context.Context, in *QueryFeederRequest, opts ...grpc.CallOption) (*QueryFeederResponse, error)
 }
 
@@ -608,10 +623,15 @@ func (c *queryClient) Feeder(ctx context.Context, in *QueryFeederRequest, opts .
 
 // QueryServer is the server API for Query service.
 type QueryServer interface {
+	// Price returns the latest aggregated price for a pair.
 	Price(context.Context, *QueryPriceRequest) (*QueryPriceResponse, error)
+	// Twap returns the time-weighted average price for a pair and window.
 	Twap(context.Context, *QueryTwapRequest) (*QueryTwapResponse, error)
+	// Params returns the current module parameters.
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
+	// MissCounter returns miss statistics for a validator.
 	MissCounter(context.Context, *QueryMissCounterRequest) (*QueryMissCounterResponse, error)
+	// Feeder returns the feeder account delegated by a validator.
 	Feeder(context.Context, *QueryFeederRequest) (*QueryFeederResponse, error)
 }
 

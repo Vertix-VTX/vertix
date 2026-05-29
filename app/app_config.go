@@ -42,7 +42,10 @@ import (
 	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 
+	feesmodulev1 "github.com/vertix-network/vertix/api/vertix/fees/module"
 	oraclemodulev1 "github.com/vertix-network/vertix/api/vertix/oracle/module"
+	_ "github.com/vertix-network/vertix/x/fees/module" // import for side-effects
+	feesmoduletypes "github.com/vertix-network/vertix/x/fees/types"
 	_ "github.com/vertix-network/vertix/x/oracle/module" // import for side-effects
 	oraclemoduletypes "github.com/vertix-network/vertix/x/oracle/types"
 	// this line is used by starport scaffolding # stargate/app/moduleImport
@@ -78,6 +81,7 @@ var (
 		upgradetypes.ModuleName,
 		vestingtypes.ModuleName,
 		consensustypes.ModuleName,
+		feesmoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/initGenesis
 	}
 
@@ -118,6 +122,7 @@ var (
 		ibcfeetypes.ModuleName,
 		// chain modules
 		oraclemoduletypes.ModuleName,
+		feesmoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/endBlockers
 	}
 
@@ -136,6 +141,7 @@ var (
 		{Account: ibctransfertypes.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner}},
 		{Account: ibcfeetypes.ModuleName},
 		{Account: icatypes.ModuleName},
+		{Account: feesmoduletypes.ModuleName, Permissions: []string{authtypes.Burner}},
 		// this line is used by starport scaffolding # stargate/app/maccPerms
 	}
 
@@ -253,6 +259,10 @@ var (
 			{
 				Name:   oraclemoduletypes.ModuleName,
 				Config: appconfig.WrapAny(&oraclemodulev1.Module{}),
+			},
+			{
+				Name:   feesmoduletypes.ModuleName,
+				Config: appconfig.WrapAny(&feesmodulev1.Module{}),
 			},
 			// this line is used by starport scaffolding # stargate/app/moduleConfig
 		},

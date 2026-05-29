@@ -24,6 +24,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// FeederDelegation maps a validator to its delegated feeder account.
 type FeederDelegation struct {
 	Validator string `protobuf:"bytes,1,opt,name=validator,proto3" json:"validator,omitempty"`
 	Feeder    string `protobuf:"bytes,2,opt,name=feeder,proto3" json:"feeder,omitempty"`
@@ -76,6 +77,7 @@ func (m *FeederDelegation) GetFeeder() string {
 	return ""
 }
 
+// GenesisState defines the oracle module genesis state.
 type GenesisState struct {
 	Params  OracleParams       `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
 	Prices  []AggregatedPrice  `protobuf:"bytes,2,rep,name=prices,proto3" json:"prices"`

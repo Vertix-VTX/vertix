@@ -1,0 +1,12 @@
+syntax = "proto3";
+package vertix.fees.v1;
+
+import "gogoproto/gogo.proto";
+import "vertix/fees/v1/types.proto";
+
+option go_package = "github.com/vertix-network/vertix/x/fees/types";
+
+// GenesisState defines the fees module genesis state.
+message GenesisState {
+  FeesParams params = 1 [(gogoproto.nullable) = false];
+}

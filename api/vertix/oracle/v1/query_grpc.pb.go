@@ -18,10 +18,15 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type QueryClient interface {
+	// Price returns the latest aggregated price for a pair.
 	Price(ctx context.Context, in *QueryPriceRequest, opts ...grpc.CallOption) (*QueryPriceResponse, error)
+	// Twap returns the time-weighted average price for a pair and window.
 	Twap(ctx context.Context, in *QueryTwapRequest, opts ...grpc.CallOption) (*QueryTwapResponse, error)
+	// Params returns the current module parameters.
 	Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error)
+	// MissCounter returns miss statistics for a validator.
 	MissCounter(ctx context.Context, in *QueryMissCounterRequest, opts ...grpc.CallOption) (*QueryMissCounterResponse, error)
+	// Feeder returns the feeder account delegated by a validator.
 	Feeder(ctx context.Context, in *QueryFeederRequest, opts ...grpc.CallOption) (*QueryFeederResponse, error)
 }
 
@@ -82,10 +87,15 @@ func (c *queryClient) Feeder(ctx context.Context, in *QueryFeederRequest, opts .
 // All implementations must embed UnimplementedQueryServer
 // for forward compatibility
 type QueryServer interface {
+	// Price returns the latest aggregated price for a pair.
 	Price(context.Context, *QueryPriceRequest) (*QueryPriceResponse, error)
+	// Twap returns the time-weighted average price for a pair and window.
 	Twap(context.Context, *QueryTwapRequest) (*QueryTwapResponse, error)
+	// Params returns the current module parameters.
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
+	// MissCounter returns miss statistics for a validator.
 	MissCounter(context.Context, *QueryMissCounterRequest) (*QueryMissCounterResponse, error)
+	// Feeder returns the feeder account delegated by a validator.
 	Feeder(context.Context, *QueryFeederRequest) (*QueryFeederResponse, error)
 	mustEmbedUnimplementedQueryServer()
 }

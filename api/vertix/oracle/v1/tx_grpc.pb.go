@@ -18,8 +18,11 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MsgClient interface {
+	// SetFeeder delegates price submission to a feeder account.
 	SetFeeder(ctx context.Context, in *MsgSetFeeder, opts ...grpc.CallOption) (*MsgSetFeederResponse, error)
+	// SubmitFeed submits a validator price vote for a pair.
 	SubmitFeed(ctx context.Context, in *MsgSubmitFeed, opts ...grpc.CallOption) (*MsgSubmitFeedResponse, error)
+	// UpdateParams updates module parameters via governance authority.
 	UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error)
 }
 
@@ -62,8 +65,11 @@ func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts 
 // All implementations must embed UnimplementedMsgServer
 // for forward compatibility
 type MsgServer interface {
+	// SetFeeder delegates price submission to a feeder account.
 	SetFeeder(context.Context, *MsgSetFeeder) (*MsgSetFeederResponse, error)
+	// SubmitFeed submits a validator price vote for a pair.
 	SubmitFeed(context.Context, *MsgSubmitFeed) (*MsgSubmitFeedResponse, error)
+	// UpdateParams updates module parameters via governance authority.
 	UpdateParams(context.Context, *MsgUpdateParams) (*MsgUpdateParamsResponse, error)
 	mustEmbedUnimplementedMsgServer()
 }

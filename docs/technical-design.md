@@ -368,26 +368,23 @@ proto/vertix/fees/v1/
 
 ### 4.3 EndBlock Algorithm
 
+Burn-only sweep (spec D1). `x/fees` does **not** call `x/distribution`; the `DistributionRatio` portion stays in the fee collector for the SDK's native `BeginBlock` to pay stakers.
+
 ```
 EndBlock(ctx):
     params = GetParams(ctx)
-    feeCollector = authKeeper.GetModuleAddress(auth.FeeCollectorName)
-    balances = bankKeeper.GetAllBalances(feeCollector)
-    if balances.IsZero(): return
-
-    for coin in balances:
-        burn   = coin.Amount × params.BurnRatio          # rounded down
-        distr  = coin.Amount − burn
-
-        if burn > 0:
-            bankKeeper.SendCoinsFromModuleToModule(
-                feeCollector → fees module, burn)
-            bankKeeper.BurnCoins(fees module, burn coins)
-            emit EventFeeBurned(amount=burn)
-
-        if distr > 0:
-            distributionKeeper.AllocateTokensToFeePool(distr coins)
-            emit EventFeeDistributed(amount=distr)
+    if params.BurnRatio == 0: return
+    feeCollector = accountKeeper.GetModuleAddress(auth.FeeCollectorName)
+    uvtx = bankKeeper.GetBalance(feeCollector, "uvtx")   # native token only
+    if uvtx == 0: return
+    burn = floor(uvtx × params.BurnRatio)
+    if burn == 0: return                                  # dust guard
+    bankKeeper.SendCoinsFromModuleToModule(FeeCollector → fees, burn)
+    bankKeeper.BurnCoins(fees, burn)
+    emit EventFeeBurned(amount=burn)
+    emit EventFeeDistributed(amount = uvtx − burn)        # left for native x/distribution BeginBlock
+# The DistributionRatio (remainder) is distributed to stakers by the
+# unmodified x/distribution BeginBlock next block — x/fees does not call it.
 ```
 
 ### 4.4 Parameter Constraints
@@ -405,8 +402,10 @@ EndBlock(ctx):
 
 ### 4.6 Invariants
 
-- After each `EndBlock`, `FeeCollector` balance for `uvtx` is zero (everything was swept).
-- Total `uvtx` burned (via `EventFeeBurned`) ≤ original genesis supply minus current supply.
+- Total `uvtx` burned (via `EventFeeBurned`) is monotonic and ≤ genesis supply − current supply.
+- The `x/fees` module account balance is zero at every block boundary (it holds coins only transiently within `EndBlock` between the move and the burn).
+
+`x/fees` uses a burn-only sweep (spec D1): the `DistributionRatio` portion stays in the fee collector and is distributed to stakers by the native `x/distribution` `BeginBlock`. Set `community_tax = 0` in genesis so the full `DistributionRatio` reaches stakers (Phase 0 owns that genesis value).
 
 ---
 

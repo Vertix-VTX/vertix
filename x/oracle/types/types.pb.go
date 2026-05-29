@@ -28,6 +28,7 @@ var _ = time.Kitchen
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// OracleFeed is a single validator price vote for a pair at a block height.
 type OracleFeed struct {
 	Validator   string `protobuf:"bytes,1,opt,name=validator,proto3" json:"validator,omitempty"`
 	Pair        string `protobuf:"bytes,2,opt,name=pair,proto3" json:"pair,omitempty"`
@@ -96,6 +97,7 @@ func (m *OracleFeed) GetBlockHeight() int64 {
 	return 0
 }
 
+// AggregatedPrice is the stake-weighted median price for a pair.
 type AggregatedPrice struct {
 	Pair        string    `protobuf:"bytes,1,opt,name=pair,proto3" json:"pair,omitempty"`
 	Price       string    `protobuf:"bytes,2,opt,name=price,proto3" json:"price,omitempty"`
@@ -164,6 +166,7 @@ func (m *AggregatedPrice) GetBlockTime() time.Time {
 	return time.Time{}
 }
 
+// TWAPEntry is one sample in the time-weighted average price ring buffer.
 type TWAPEntry struct {
 	Pair      string    `protobuf:"bytes,1,opt,name=pair,proto3" json:"pair,omitempty"`
 	Price     string    `protobuf:"bytes,2,opt,name=price,proto3" json:"price,omitempty"`
@@ -224,6 +227,7 @@ func (m *TWAPEntry) GetBlockTime() time.Time {
 	return time.Time{}
 }
 
+// OracleParams defines module governance parameters.
 type OracleParams struct {
 	VoteWindow       int64    `protobuf:"varint,1,opt,name=vote_window,json=voteWindow,proto3" json:"vote_window,omitempty"`
 	MissThreshold    string   `protobuf:"bytes,2,opt,name=miss_threshold,json=missThreshold,proto3" json:"miss_threshold,omitempty"`
