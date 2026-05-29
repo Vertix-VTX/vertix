@@ -1,16 +1,18 @@
 # Builds a single image carrying both vertixd and vertix-feeder for the devnet.
-# Toolchain: go1.25.4-alpine (Cosmos/gin sonic does not link on Go 1.26+).
-FROM golang:1.25.4-alpine AS builder
-RUN apk add --no-cache git make
+# Builder uses Debian/glibc (golang:1.25.4); runtime stays Alpine.
+# Go 1.26+ breaks sonic (Cosmos/gin); the image pins 1.25.4 — use GOTOOLCHAIN=local here.
+FROM golang:1.25.4 AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends make git \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-# CGO off: sonic (via gin) fails to link with CGO_ENABLED=1 on Go 1.25+.
-# GOTOOLCHAIN matches Makefile pin; build outputs under WORKDIR (not /out at FS root).
-ENV CGO_ENABLED=0 GOTOOLCHAIN=go1.25.4
-RUN make build BUILD_DIR=/src/out VERSION=devnet \
- && make feeder-build BUILD_DIR=/src/out VERSION=devnet
+ENV CGO_ENABLED=0
+ENV GOTOOLCHAIN=local
+RUN mkdir -p /src/out \
+    && make build BUILD_DIR=/src/out VERSION=devnet \
+    && make feeder-build BUILD_DIR=/src/out VERSION=devnet
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates libstdc++ bash jq curl

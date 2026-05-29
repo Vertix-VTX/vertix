@@ -1,11 +1,13 @@
-FROM golang:1.25.4-alpine AS builder
-RUN apk add --no-cache git make build-base linux-headers
+FROM golang:1.25.4 AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends make git \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-ENV CGO_ENABLED=0 GOTOOLCHAIN=go1.25.4
-RUN make build BUILD_DIR=/src/out VERSION=docker
+ENV CGO_ENABLED=0
+ENV GOTOOLCHAIN=local
+RUN mkdir -p /src/out && make build BUILD_DIR=/src/out VERSION=docker
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates libstdc++

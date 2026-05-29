@@ -1,6 +1,6 @@
 build/
 e2e/
-docs/
+# Keep docs/docs.go + static/ + template/ (imported by app for OpenAPI); *.md drops markdown only.
 infra/
 .git/
 *.md
