@@ -1,3 +1,3 @@
-6e451a0360accfd6bd7197d00cea05f99ae4ff3f@founder1.testnet.vertix.example:26656
-27117a376fc3b4cbaeb74a2e11e9d859793ca794@founder2.testnet.vertix.example:26656
-679850f85437b23a37734f162284eaf4ab7a411e@founder3.testnet.vertix.example:26656
+008ae23871ae1b947a172127b8a8665010c7eed5@founder1.testnet.vertix.example:26656
+bc96cf35107edff27856ba0101d35aba3f5945d4@founder2.testnet.vertix.example:26656
+422b3369d40291494751b1e384052c1b52e44f89@founder3.testnet.vertix.example:26656
