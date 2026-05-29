@@ -204,16 +204,24 @@ devnet-smoke:
 TESTNET_DIR ?= infra/testnet
 TESTNET_COMPOSE ?= docker compose --env-file $(TESTNET_DIR)/.env --env-file $(TESTNET_DIR)/mnemonics.env -f $(TESTNET_DIR)/docker-compose.public.yml
 
-testnet-genesis:
+testnet-tag-image:
+	@docker tag vertix:devnet vertix:testnet
+
+testnet-genesis: devnet-docker-build testnet-tag-image
 	@./scripts/testnet/build-genesis.sh
 
-testnet-up: devnet-docker-build testnet-genesis
-	@docker tag vertix:devnet vertix:testnet
-	@echo "--> Starting public testnet founder stack"
-	@$(TESTNET_COMPOSE) up -d
+testnet-up: testnet-genesis
+	@echo "--> Starting public testnet founder stack (chain + faucet + monitoring)"
+	@$(TESTNET_COMPOSE) --profile monitoring up -d
+
+testnet-up-explorer:
+	@echo "--> Starting Ping.pub explorer (profile: explorer)"
+	@$(TESTNET_COMPOSE) --profile explorer up -d
+
+testnet-up-all: testnet-up testnet-up-explorer
 
 testnet-down:
-	@$(TESTNET_COMPOSE) down -v
+	@$(TESTNET_COMPOSE) --profile monitoring --profile explorer down -v
 
 testnet-join-smoke:
 	@./scripts/testnet/join-smoke.sh
@@ -224,7 +232,7 @@ testnet-demo:
 testnet-integration-verify:
 	@./scripts/testnet/integration-verify.sh
 
-.PHONY: testnet-genesis testnet-up testnet-down testnet-join-smoke testnet-demo testnet-integration-verify
+.PHONY: testnet-tag-image testnet-genesis testnet-up testnet-up-explorer testnet-up-all testnet-down testnet-join-smoke testnet-demo testnet-integration-verify
 
 ###################
 ###  Load test  ###

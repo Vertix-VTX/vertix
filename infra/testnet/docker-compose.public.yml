@@ -86,7 +86,10 @@ services:
     volumes: ["./.gen/feeder:/cfg:ro","./.gen/feeder/keyring:/keyring:ro"]
     ports: ["9203:9200"]
 
+  # Optional: ghcr.io/ping-pub/explorer may return "denied" with stale `docker login ghcr.io` creds.
+  # Enable with: docker compose ... --profile explorer up -d  (or make testnet-up-explorer)
   explorer:
+    profiles: [explorer]
     image: ${EXPLORER_IMAGE}
     restart: unless-stopped
     networks: [testnet]
@@ -104,6 +107,7 @@ services:
     ports: ["8000:8000"]
 
   prometheus:
+    profiles: [monitoring]
     image: ${PROMETHEUS_IMAGE}
     restart: unless-stopped
     networks: [testnet]
@@ -113,6 +117,7 @@ services:
     ports: ["9095:9090"]
 
   grafana:
+    profiles: [monitoring]
     image: ${GRAFANA_IMAGE}
     restart: unless-stopped
     networks: [testnet]
@@ -127,6 +132,7 @@ services:
     ports: ["3000:3000"]
 
   tenderduty:
+    profiles: [monitoring]
     image: ${TENDERDUTY_IMAGE}
     restart: unless-stopped
     networks: [testnet]
