@@ -1,0 +1,55 @@
+name: Onboarding Problem
+description: Trouble joining vertix-testnet-1 as a validator operator
+title: "[onboarding] "
+labels:
+  - onboarding
+  - testnet
+body:
+  - type: dropdown
+    id: step
+    attributes:
+      label: Which onboarding step failed?
+      options:
+        - genesis-verify
+        - state-sync
+        - create-validator
+        - feeder
+        - monitoring
+    validations:
+      required: true
+
+  - type: input
+    id: moniker
+    attributes:
+      label: Validator moniker
+      placeholder: my-validator
+    validations:
+      required: true
+
+  - type: textarea
+    id: env_redacted
+    attributes:
+      label: Node-kit env (redacted)
+      description: Paste relevant env vars from infra/testnet/node-kit/env — redact IPs, keys, and mnemonics
+      placeholder: |
+        MONIKER=my-validator
+        CHAIN_ID=vertix-testnet-1
+        GENESIS_SHA256=<hash you verified>
+        # redact SEEDS, STATESYNC_*, keys
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_output
+    attributes:
+      label: Error output
+      description: Full command output, journalctl snippet, or RPC error
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: vertixd version, OS, whether genesis hash matched sha256sum

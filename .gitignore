@@ -14,3 +14,9 @@ build/
 # Phase 6 devnet generated node data (config templates + keys ARE committed)
 infra/devnet/data/
 infra/devnet/.gen/
+
+# Phase 8 public testnet generated + secret files
+infra/testnet/.gen/
+infra/testnet/mnemonics.env
+infra/testnet/genesis/genesis.json
+infra/testnet/genesis/genesis.sha256

@@ -1,0 +1,15 @@
+enable_dash: yes
+listen_port: 8888
+chains:
+  "Vertix Testnet":
+    chain_id: vertix-testnet-1
+    valoper_address: VALOPER_ADDRESS_HERE
+    rpc:
+      - "http://sentry1:26657"
+    alerts:
+      stalled_enabled: yes
+      stalled_minutes: 10
+      consecutive_enabled: yes
+      consecutive_missed: 5
+      alert_if_inactive: yes
+      alert_if_no_servers: yes

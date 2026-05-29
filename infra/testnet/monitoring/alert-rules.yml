@@ -1,0 +1,27 @@
+groups:
+  - name: vertix-testnet
+    rules:
+      - alert: FeederSubmissionsStalled
+        expr: increase(feeds_submitted_total[10m]) == 0
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Feeder {{ $labels.instance }} submitted no feeds in 10m"
+      - alert: FeederFailuresRising
+        expr: increase(feeds_failed_total[10m]) > 5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Feeder {{ $labels.instance }} failing (>5 errors/10m)"
+      - alert: ConsensusMissingBlocks
+        expr: increase(cometbft_consensus_validator_missed_blocks[10m]) > 0
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Validator {{ $labels.instance }} missing blocks"
+      - alert: BlockProductionStalled
+        expr: increase(cometbft_consensus_height[5m]) == 0
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Chain height not advancing (possible halt)"

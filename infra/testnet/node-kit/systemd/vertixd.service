@@ -1,0 +1,18 @@
+[Unit]
+Description=Vertix testnet node (via Cosmovisor)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=vertix
+Environment="DAEMON_NAME=vertixd"
+Environment="DAEMON_HOME=/home/vertix/.vertixd"
+Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=false"
+Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
+ExecStart=/usr/local/bin/cosmovisor run start --home /home/vertix/.vertixd
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

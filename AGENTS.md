@@ -41,6 +41,10 @@ All design and process docs live in [`docs/`](./docs/). Always check these befor
 | [`docs/tokenomics.md`](./docs/tokenomics.md) | Touching genesis, vesting, fees, supply |
 | [`docs/roadmap.md`](./docs/roadmap.md) | Scope / sequencing / milestone questions |
 | [`docs/relayer.md`](./docs/relayer.md) | Setting up Hermes/`rly` to relay ICS-20 (VTX, `rwa/*`) |
+| [`docs/testnet-runbook.md`](./docs/testnet-runbook.md) | Public testnet live-ops, incidents, Phase 9 gate |
+| [`docs/validator-onboarding.md`](./docs/validator-onboarding.md) | External validator + feeder join contract |
+| [`docs/rwa-quickstart.md`](./docs/rwa-quickstart.md) | RWA lifecycle walkthrough on testnet |
+| [`docs/bug-bounty.md`](./docs/bug-bounty.md) | Bug bounty scope + severity rubric |
 
 ### Source of Truth
 | Path | Purpose |
@@ -57,6 +61,7 @@ All design and process docs live in [`docs/`](./docs/). Always check these befor
 | 04 | [`docs/plans/2026-05-09-04-rwa-module.md`](./docs/plans/2026-05-09-04-rwa-module.md) | `x/rwa` module |
 | 05 | [`docs/plans/2026-05-09-05-oracle-feeder-sidecar.md`](./docs/plans/2026-05-09-05-oracle-feeder-sidecar.md) | `vertix-feeder` binary |
 | 06 | [`docs/plans/2026-05-09-06-ibc-devnet.md`](./docs/plans/2026-05-09-06-ibc-devnet.md) | IBC E2E + devnet stack |
+| 08 | [`docs/plans/2026-05-29-phase-8-public-testnet.md`](./docs/plans/2026-05-29-phase-8-public-testnet.md) | `vertix-testnet-1` launch artifacts + runbook |
 
 ---
 
@@ -90,6 +95,7 @@ vertix/
 ├── testutil/        Shared test helpers
 ├── e2e/             interchaintest IBC E2E (own go.mod)
 ├── infra/           Devnet, hermes, monitoring, explorer
+│   └── testnet/     Phase 8 — infra/testnet/ public stack + node kit
 ├── docs/            All design + plans + this guide
 ├── .github/workflows/ci.yml
 ├── Makefile

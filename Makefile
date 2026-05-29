@@ -198,6 +198,32 @@ devnet-smoke:
 .PHONY: devnet-docker-build localnet-genesis localnet-up localnet-down localnet-reset devnet-smoke
 
 ###################
+###  Testnet (Public, Phase 8) ###
+###################
+
+TESTNET_DIR ?= infra/testnet
+TESTNET_COMPOSE ?= docker compose --env-file $(TESTNET_DIR)/.env --env-file $(TESTNET_DIR)/mnemonics.env -f $(TESTNET_DIR)/docker-compose.public.yml
+
+testnet-genesis:
+	@./scripts/testnet/build-genesis.sh
+
+testnet-up: devnet-docker-build testnet-genesis
+	@docker tag vertix:devnet vertix:testnet
+	@echo "--> Starting public testnet founder stack"
+	@$(TESTNET_COMPOSE) up -d
+
+testnet-down:
+	@$(TESTNET_COMPOSE) down -v
+
+testnet-join-smoke:
+	@./scripts/testnet/join-smoke.sh
+
+testnet-demo:
+	@./scripts/testnet/rwa-demo.sh
+
+.PHONY: testnet-genesis testnet-up testnet-down testnet-join-smoke testnet-demo
+
+###################
 ###  Load test  ###
 ###################
 

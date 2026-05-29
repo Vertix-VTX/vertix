@@ -1,0 +1,59 @@
+name: Feed Incident
+description: Oracle feeder stall, miss spike, or provider failure on testnet
+title: "[feed-incident] "
+labels:
+  - oracle
+  - feed-incident
+  - testnet
+body:
+  - type: input
+    id: pairs
+    attributes:
+      label: Affected pair(s)
+      placeholder: VTX:USD
+    validations:
+      required: true
+
+  - type: input
+    id: valoper
+    attributes:
+      label: Validator operator address (valoper)
+      placeholder: vtxvaloper1...
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Feeder metrics snapshot
+      description: Output of curl localhost:9200/metrics | grep -E 'feeds_(submitted|failed)_total'
+      render: shell
+      placeholder: |
+        vertix_feeder_feeds_submitted_total{pair="VTX:USD"} 1234
+        vertix_feeder_feeds_failed_total{pair="VTX:USD",reason="broadcast"} 0
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: providers
+    attributes:
+      label: Price provider(s) configured
+      options:
+        - label: coingecko
+        - label: binance
+        - label: other
+
+  - type: input
+    id: time_window
+    attributes:
+      label: Time window (UTC)
+      description: When did the incident start/end?
+      placeholder: "2026-05-29 14:00–15:30 UTC"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Feeder / node logs
+      render: shell

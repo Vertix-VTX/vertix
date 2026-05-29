@@ -1,0 +1,13 @@
+[Unit]
+Description=Vertix oracle feeder sidecar
+After=vertixd.service
+Requires=vertixd.service
+
+[Service]
+User=vertix
+ExecStart=/usr/local/bin/vertix-feeder --config /home/vertix/.vertixd/feeder.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

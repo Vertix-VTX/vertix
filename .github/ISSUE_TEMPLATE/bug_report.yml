@@ -1,0 +1,78 @@
+name: Bug Report
+description: Report a bug in x/oracle, x/rwa, x/fees, or testnet tooling
+title: "[bug] "
+labels:
+  - bug
+  - testnet
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For **security vulnerabilities**, do NOT use this form. See [SECURITY.md](../../SECURITY.md) and report privately.
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      description: Which Vertix component is affected?
+      options:
+        - oracle
+        - rwa
+        - fees
+        - other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity (self-assessment)
+      description: Map to the bug bounty rubric in docs/bug-bounty.md
+      options:
+        - Critical — violates fees/reconcile, rwa/bonds, or halts consensus via oracle
+        - High — unjust slash, transfer bypass, rwa/denoms premature mint
+        - Medium — griefing, recoverable incorrect state
+        - Low — informational
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: vertixd release tag or git SHA
+      placeholder: "v0.8.0-testnet or abc1234"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact commands, chain ID, and RPC endpoint used
+      placeholder: |
+        1. vertixd tx rwa register-asset ...
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / transaction hashes
+      description: Relevant vertixd output, tx hashes, or block height
+      render: shell

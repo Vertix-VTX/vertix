@@ -26,8 +26,9 @@ vertix/
 │       └── fees/v1/
 ├── testutil/                 🛠️  Shared test helpers (keeper fixtures, mocks)
 ├── e2e/                      🛠️  interchaintest IBC end-to-end suite (own go.mod)
-├── infra/                    🛠️  Local devnet, relayer, monitoring, explorer, load-test config
+├── infra/                    🛠️  Local devnet, relayer, monitoring, explorer, load-test, testnet
 │   ├── devnet/
+│   ├── testnet/                  Phase 8 — public testnet founder stack + node kit
 │   ├── hermes/
 │   ├── explorer/
 │   ├── monitoring/
@@ -269,7 +270,18 @@ infra/
             └── vertix.json         Starter Vertix dashboard
 ```
 
-Generated at runtime (gitignored): `infra/devnet/.gen/`, `infra/devnet/data/`.
+```
+infra/testnet/                      🛠️  Phase 8 — public testnet (`vertix-testnet-1`)
+├── .env                            Pinned image tags, chain ID, public endpoints
+├── mnemonics.env.example           Founder key mnemonics template (NEVER commit real secrets)
+├── docker-compose.public.yml       Founder validators, sentries, faucet, monitoring
+├── genesis/                        Published genesis.json + genesis.sha256 + seeds.txt
+├── node-kit/                       Portable external-validator kit (env, setup-node.sh, systemd)
+├── faucet/                         Cosmfaucet config
+└── monitoring/                     Prometheus, Grafana, Tenderduty, PANIC, alert rules
+```
+
+Generated at runtime (gitignored): `infra/devnet/.gen/`, `infra/devnet/data/`, `infra/testnet/.gen/`.
 
 **Devnet workflows (coexist — D5):**
 
@@ -316,8 +328,10 @@ docs/
 ├── load-test.md                 🛠️  Phase 7 — tm-load-test TPS/latency baseline
 ├── tmkms.md                     🛠️  Phase 7 — TMKMS + sentry topology
 ├── validator-setup.md           🛠️  Phase 7 — validator key separation
-├── validator-onboarding.md      (created by Phase 8)
-└── rwa-quickstart.md            (created by Phase 8)
+├── validator-onboarding.md      🛠️  Phase 8 — external validator node + feeder join
+├── rwa-quickstart.md            🛠️  Phase 8 — RWA lifecycle walkthrough
+├── bug-bounty.md                🛠️  Phase 8 — bug bounty scope + severity rubric
+└── testnet-runbook.md           🛠️  Phase 8 — public testnet live-ops runbook
 ```
 
 ---

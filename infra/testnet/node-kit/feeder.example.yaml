@@ -1,0 +1,28 @@
+chain_id: vertix-testnet-1
+node_grpc: localhost:9090
+validator: YOUR_VALOPER_ADDRESS        # vertixvaloper1... from `vertixd keys show <op> --bech val -a`
+key_name: feeder
+keyring_backend: file
+keyring_dir: /home/vertix/.vertixd
+fees: 2000uvtx
+gas: "300000"
+gas_adjustment: 1.3
+feed_interval: 5s
+submit_poll_interval: 1s
+vote_window: 0
+broadcast_retries: 3
+quality:
+  min_providers: 2                     # live testnet: require cross-source agreement
+  max_deviation: "0.10"
+  max_quote_age: 30s
+providers: ["coingecko","binance","static"]
+static_prices:
+  "VTX:USD": "0.10"                     # Static bootstraps VTX:USD until listing
+pairs:
+  - { pair: "VTX:USD",  symbols: { static: "VTX:USD" } }
+  - { pair: "BTC:USD",  symbols: { coingecko: "bitcoin", binance: "BTCUSDT" } }
+  - { pair: "ETH:USD",  symbols: { coingecko: "ethereum", binance: "ETHUSDT" } }
+  - { pair: "ATOM:USD", symbols: { coingecko: "cosmos", binance: "ATOMUSDT" } }
+  - { pair: "USDC:USD", symbols: { coingecko: "usd-coin", binance: "USDCUSDT" } }
+prometheus: { enabled: true, port: 9200 }
+log_level: info

@@ -281,6 +281,8 @@ With `prometheus.enabled: true` in feeder config, metrics are served at `http://
 
 **Alerting hints (Phase 8):** rising `feeds_failed_total`, flat `feeds_submitted_total` across vote windows, and increasing CometBFT missed blocks often precede oracle miss slashes (0.5%) — correlate feeder and consensus metrics.
 
+Testnet reference configs: [`infra/testnet/monitoring/`](../infra/testnet/monitoring/) (Grafana dashboards, [`alert-rules.yml`](../infra/testnet/monitoring/alert-rules.yml), Tenderduty, PANIC). External validators: follow [`docs/validator-onboarding.md`](./validator-onboarding.md) for self-monitoring setup.
+
 ### Other operational metrics
 
 - **SDK / module metrics** — extend via application instrumentation as Phase 8 adds chain-wide dashboards.

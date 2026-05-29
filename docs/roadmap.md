@@ -247,21 +247,28 @@ DRAFT → ATTESTED → ACTIVE → SETTLED
 
 ## Phase 7 — Public Testnet v1 `Month 7–9`
 
+> **Canonical spec numbering:** this is **Phase 8** (Public Testnet v1) per [`full-design-spec.md`](./full-design-spec.md); live 4-week endurance + 10+ external validators are tracked in [`docs/testnet-runbook.md`](./testnet-runbook.md).
+
 **Goal:** Battle-test with external validators and real users.
 
 ### Tasks
-- [ ] Chain ID: `vertix-testnet-1`
+- [x] Chain ID: `vertix-testnet-1`
+- [x] Genesis tooling + reproducible builder (`scripts/testnet/build-genesis.sh`, `make testnet-genesis`)
+- [x] Founder core infra (`infra/testnet/docker-compose.public.yml`)
+- [x] External-validator node kit (`infra/testnet/node-kit/`)
 - [ ] Onboard 10+ external validators (docs: `docs/validator-onboarding.md`)
-- [ ] Public faucet live (Cosmfaucet with VTX testnet tokens)
-- [ ] Bug bounty program launched (scope: all three custom modules)
+- [x] Public faucet live (Cosmfaucet with VTX testnet tokens)
+- [x] Bug bounty program launched (`SECURITY.md`, `docs/bug-bounty.md`)
 - [ ] External validators run oracle feeder sidecars independently
-- [ ] RWA demo campaign:
-  - Example asset classes registered, attested, minted, and settled publicly
+- [x] RWA demo campaign:
+  - Example asset classes registered, attested, minted, and settled publicly (`scripts/testnet/rwa-demo.sh`, `rwa-dispute-demo.sh`)
   - Tutorial: `docs/rwa-quickstart.md`
-- [ ] Monitoring stack deployed:
+- [x] Monitoring stack deployed:
   - Prometheus + Grafana dashboards (block time, oracle miss rate, fee burn rate, RWA activity)
   - Tenderduty: missed block alerts for validator operators
   - PANIC: general validator health monitoring
+- [x] Issue templates + triage rubric (`.github/ISSUE_TEMPLATE/`)
+- [x] Live-ops runbook: `docs/testnet-runbook.md`
 - [ ] Collect and triage all public issues → prioritize for testnet v2
 
 **Acceptance Criteria:**

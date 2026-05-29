@@ -1,0 +1,145 @@
+name: vertix-testnet
+
+x-node: &node
+  image: ${VERTIX_IMAGE}
+  restart: unless-stopped
+  networks: [testnet]
+
+services:
+  init:
+    image: ${VERTIX_IMAGE}
+    networks: [testnet]
+    volumes:
+      - ./.gen:/gen:ro
+      - f1data:/f1
+      - f2data:/f2
+      - f3data:/f3
+    entrypoint: ["sh","-c"]
+    command:
+      - |
+        set -e
+        for i in 1 2 3; do
+          rm -rf /f$$i/* && mkdir -p /f$$i/config /f$$i/data
+          cp -r /gen/founder$$i/config/* /f$$i/config/
+          echo '{"height":"0","round":0,"step":0}' > /f$$i/data/priv_validator_state.json
+        done
+        echo "init: seeded founder homes"
+
+  # --- Founder validators (p2p reachable ONLY by their sentries) ---
+  founder1:
+    <<: *node
+    depends_on: { init: { condition: service_completed_successfully } }
+    command: ["vertixd","start","--home","/root/.vertixd"]
+    volumes: ["f1data:/root/.vertixd"]
+    ports: ["26660:26660"]   # Prometheus only; NO public RPC/p2p
+
+  founder2:
+    <<: *node
+    depends_on: { init: { condition: service_completed_successfully } }
+    command: ["vertixd","start","--home","/root/.vertixd"]
+    volumes: ["f2data:/root/.vertixd"]
+
+  founder3:
+    <<: *node
+    depends_on: { init: { condition: service_completed_successfully } }
+    command: ["vertixd","start","--home","/root/.vertixd"]
+    volumes: ["f3data:/root/.vertixd"]
+
+  # --- Sentry (public p2p + public read RPC/LCD/gRPC). One shown; scale as needed. ---
+  sentry1:
+    <<: *node
+    depends_on: { founder1: { condition: service_started } }
+    command: ["vertixd","start","--home","/root/.vertixd"]
+    volumes: ["sentry1data:/root/.vertixd"]
+    ports:
+      - "26656:26656"   # public p2p
+      - "26657:26657"   # public read RPC (rate-limited at the edge/proxy)
+      - "1317:1317"     # public LCD
+      - "9090:9090"     # public gRPC
+
+  # --- Seed node (peer discovery only) ---
+  seed:
+    <<: *node
+    depends_on: { sentry1: { condition: service_started } }
+    command: ["vertixd","start","--home","/root/.vertixd"]
+    volumes: ["seeddata:/root/.vertixd"]
+    ports: ["26666:26656"]
+
+  feeder1:
+    <<: *node
+    depends_on: { founder1: { condition: service_started } }
+    command: ["vertix-feeder","--config","/cfg/feeder1.yaml"]
+    volumes: ["./.gen/feeder:/cfg:ro","./.gen/feeder/keyring:/keyring:ro"]
+    ports: ["9201:9200"]
+
+  feeder2:
+    <<: *node
+    depends_on: { founder2: { condition: service_started } }
+    command: ["vertix-feeder","--config","/cfg/feeder2.yaml"]
+    volumes: ["./.gen/feeder:/cfg:ro","./.gen/feeder/keyring:/keyring:ro"]
+    ports: ["9202:9200"]
+
+  feeder3:
+    <<: *node
+    depends_on: { founder3: { condition: service_started } }
+    command: ["vertix-feeder","--config","/cfg/feeder3.yaml"]
+    volumes: ["./.gen/feeder:/cfg:ro","./.gen/feeder/keyring:/keyring:ro"]
+    ports: ["9203:9200"]
+
+  explorer:
+    image: ${EXPLORER_IMAGE}
+    restart: unless-stopped
+    networks: [testnet]
+    depends_on: { sentry1: { condition: service_started } }
+    volumes: ["../explorer/chains/vertix-testnet.json:/app/chains/mainnet/vertix.json:ro"]
+    ports: ["8080:80"]
+
+  faucet:
+    image: ${FAUCET_IMAGE}
+    restart: unless-stopped
+    networks: [testnet]
+    depends_on: { sentry1: { condition: service_started } }
+    env_file: [./faucet/cosmfaucet.env, ./mnemonics.env]
+    command: ["start","http://sentry1:26657"]
+    ports: ["8000:8000"]
+
+  prometheus:
+    image: ${PROMETHEUS_IMAGE}
+    restart: unless-stopped
+    networks: [testnet]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+    ports: ["9095:9090"]
+
+  grafana:
+    image: ${GRAFANA_IMAGE}
+    restart: unless-stopped
+    networks: [testnet]
+    depends_on: { prometheus: { condition: service_started } }
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-changeme}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+
+  tenderduty:
+    image: ${TENDERDUTY_IMAGE}
+    restart: unless-stopped
+    networks: [testnet]
+    depends_on: { sentry1: { condition: service_started } }
+    volumes: ["./monitoring/tenderduty/config.yml:/var/lib/tenderduty/config.yml:ro"]
+    ports: ["8888:8888"]
+
+networks:
+  testnet: { name: vertix-testnet }
+
+volumes:
+  f1data: {}
+  f2data: {}
+  f3data: {}
+  sentry1data: {}
+  seeddata: {}
