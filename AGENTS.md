@@ -40,6 +40,7 @@ All design and process docs live in [`docs/`](./docs/). Always check these befor
 | [`docs/coding-standards.md`](./docs/coding-standards.md) | Every code change, every PR |
 | [`docs/tokenomics.md`](./docs/tokenomics.md) | Touching genesis, vesting, fees, supply |
 | [`docs/roadmap.md`](./docs/roadmap.md) | Scope / sequencing / milestone questions |
+| [`docs/relayer.md`](./docs/relayer.md) | Setting up Hermes/`rly` to relay ICS-20 (VTX, `rwa/*`) |
 
 ### Source of Truth
 | Path | Purpose |
@@ -192,6 +193,7 @@ go build -o build/vertix-feeder ./feeder/cmd/vertix-feeder
 build/vertix-feeder --config feeder-config.example.yaml
 
 # E2E (separate Go module)
+make e2e                 # build vertixd image + run interchaintest ICS-20 suite
 cd e2e && go test ./... -timeout 30m -v
 ```
 

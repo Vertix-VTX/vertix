@@ -180,6 +180,22 @@ ts-gen:
 .PHONY: ts-gen
 
 ###################
+###    E2E      ###
+###################
+
+E2E_IMAGE ?= vertix-network/vertixd:local
+
+e2e-image:
+	@echo "--> Building e2e docker image $(E2E_IMAGE)"
+	@docker build -t $(E2E_IMAGE) .
+
+e2e: e2e-image
+	@echo "--> Running interchaintest e2e suite"
+	@cd e2e && go test ./... -timeout 30m -v
+
+.PHONY: e2e-image e2e
+
+###################
 ###    Hooks    ###
 ###################
 

@@ -46,6 +46,7 @@ vertix/
 ├── .github/                  🛠️  CI/CD
 │   └── workflows/
 ├── build/                    📦  Compiled binaries (gitignored)
+├── Dockerfile                🛠️  static vertixd image for interchaintest e2e
 ├── config.yml                ✅  Ignite chain config (devnet identity)
 ├── go.mod / go.sum           ✅  Go modules
 ├── Makefile                  🛠️  Dev targets (build, test, lint, devnet)
@@ -228,9 +229,11 @@ Independent Go module to keep `interchaintest`'s heavy dependency tree out of th
 e2e/
 ├── go.mod
 ├── go.sum
-├── ibc_transfer_test.go     ICS-20 VTX transfer between two Vertix chains
-├── rwa_transfer_test.go     ICS-20 rwa/* denom transfer test
-└── helpers/                 Chain spec helpers, image tags
+├── ibc_transfer_test.go     ICS-20 VTX transfer between two Vertix chains (default CI)
+├── gaia_transfer_test.go    ICS-20 VTX transfer Vertix<->gaia (build tag `realnet`, opt-in)
+├── rwa_transfer_test.go     rwa/* portability test (build tag `rwa`, enabled after Phase 3)
+└── helpers/
+    └── chain.go             Vertix ChainSpec, image tag, genesis overrides
 ```
 
 Run with `cd e2e && go test ./... -timeout 30m -v`.

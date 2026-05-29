@@ -1,0 +1,69 @@
+# Hermes v1.8.x relayer config for a Vertix <-> counterparty ICS-20 link.
+# Replace counterparty fields when targeting a specific chain.
+
+[global]
+log_level = "info"
+
+[mode.clients]
+enabled = true
+refresh = true
+misbehaviour = true
+
+[mode.connections]
+enabled = true
+
+[mode.channels]
+enabled = true
+
+[mode.packets]
+enabled = true
+clear_interval = 100
+clear_on_start = true
+tx_confirmation = true
+
+[telemetry]
+enabled = true
+host = "127.0.0.1"
+port = 3001
+
+[[chains]]
+id = "vertix-devnet-1"
+type = "CosmosSdk"
+rpc_addr = "http://127.0.0.1:26657"
+grpc_addr = "http://127.0.0.1:9090"
+event_source = { mode = "push", url = "ws://127.0.0.1:26657/websocket", batch_delay = "500ms" }
+rpc_timeout = "10s"
+account_prefix = "vtx"
+key_name = "vertix-relayer"
+store_prefix = "ibc"
+gas_price = { price = 0.025, denom = "uvtx" }
+gas_multiplier = 1.3
+default_gas = 1000000
+max_gas = 10000000
+max_msg_num = 30
+max_tx_size = 180000
+clock_drift = "5s"
+max_block_time = "30s"
+trusting_period = "14days"
+trust_threshold = { numerator = "1", denominator = "3" }
+
+[[chains]]
+id = "vertix-devnet-2"
+type = "CosmosSdk"
+rpc_addr = "http://127.0.0.1:26667"
+grpc_addr = "http://127.0.0.1:9092"
+event_source = { mode = "push", url = "ws://127.0.0.1:26667/websocket", batch_delay = "500ms" }
+rpc_timeout = "10s"
+account_prefix = "vtx"
+key_name = "vertix-relayer"
+store_prefix = "ibc"
+gas_price = { price = 0.025, denom = "uvtx" }
+gas_multiplier = 1.3
+default_gas = 1000000
+max_gas = 10000000
+max_msg_num = 30
+max_tx_size = 180000
+clock_drift = "5s"
+max_block_time = "30s"
+trusting_period = "14days"
+trust_threshold = { numerator = "1", denominator = "3" }
